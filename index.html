@@ -64,6 +64,13 @@ header.top h1{font-size:20px;margin:0;font-weight:700;letter-spacing:-.01em}
 .drag{cursor:grab;touch-action:none;font-size:20px;color:var(--muted);padding:6px 4px;user-select:none}
 .row.dragging{opacity:.6;background:var(--accent-soft);border-radius:12px}
 .reorder-btn{display:block;margin:6px auto 0;background:none;border:0;color:var(--muted);font-size:13px}
+.heros{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:12px;margin:0 -14px;padding:0 14px 6px;scrollbar-width:none;scroll-padding:0 14px}
+.heros::-webkit-scrollbar{display:none}
+.heros .hero{flex:0 0 100%;scroll-snap-align:center;margin-bottom:6px}
+.hero-cr{background:linear-gradient(135deg,#E11D48 0%,#9333EA 100%);box-shadow:0 12px 30px rgba(225,29,72,.30)}
+.hdots{display:flex;justify-content:center;gap:6px;margin:0 0 12px}
+.hdots i{width:6px;height:6px;border-radius:3px;background:var(--line);transition:all .2s}
+.hdots i.on{width:18px;background:var(--accent)}
 .stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
 .stat{background:var(--card);border-radius:16px;padding:11px;box-shadow:var(--shadow);border:1px solid var(--border)}
 .stat small{display:block;color:var(--muted);font-size:12px}
@@ -443,6 +450,7 @@ function render() {
   const v = { home: vHome, ops: vOps, budget: vBudget, stats: vStats, more: vMore }[UI.tab] || vHome;
   $('#main').innerHTML = v();
   $('.fab').style.display = (UI.tab === 'more' && UI.sub && UI.sub !== 'menu') ? 'none' : '';
+  initHeros();
   const q = $('#fq'); if (q && UI._focusQ) { q.focus(); q.setSelectionRange(q.value.length, q.value.length); UI._focusQ = false; }
 }
 
@@ -581,6 +589,34 @@ function homeSettings() {
   });
 }
 
+/* ---------- Hero cards (swipe) ---------- */
+function heroCards(inc, exp) {
+  const own = accs().filter(a => akind(a) === 'reg'); const ownT = sum(own, a => toBase(accBalance(a.id), accCur(a)));
+  const cr = accs().filter(a => akind(a) === 'credit');
+  const sg = v => v < 0 ? '−' : v > 0 ? '+' : '';
+  const c1 = `<div class="hero"><small>💰 Мої гроші · на картах і готівкою</small><div class="big">${money(ownT)}</div>
+    <div class="hrow"><div><small>Доходи</small><b>${inc ? '+' : ''}${nf0.format(inc)}</b></div><div><small>Витрати</small><b>${exp ? '−' : ''}${nf0.format(exp)}</b></div><div><small>Різниця</small><b>${sg(inc - exp)}${nf0.format(Math.abs(inc - exp))}</b></div></div></div>`;
+  if (!cr.length) return c1;
+  const info = cr.map(a => ({ a, ci: creditInfo(a) }));
+  const debt = sum(info, x => toBase(x.ci.debt, accCur(x.a))), lim = sum(info, x => toBase(Number(x.a.limit) || 0, accCur(x.a)));
+  const minNow = sum(info, x => toBase(x.ci.minLeft, accCur(x.a))), interest = sum(info, x => toBase(x.ci.interest, accCur(x.a)));
+  const next = info.filter(x => x.ci.minLeft > 0).sort((a, b) => a.ci.due - b.ci.due)[0];
+  const d = next ? next.ci.due.toLocaleDateString('uk-UA', { day: 'numeric', month: 'short' }) : '';
+  const c2 = `<div class="hero hero-cr"><small>💳 Кредити · ${cr.length} ${cr.length === 1 ? 'картка' : cr.length < 5 ? 'картки' : 'карток'}</small><div class="big">−${money(debt).replace('−', '')}</div>
+    <div class="hrow"><div><small>До сплати</small><b>${minNow ? nf0.format(Math.ceil(minNow)) : '✓ 0'}</b></div><div><small>Найближчий</small><b>${next ? d : '—'}</b></div><div><small>Відсотки/міс</small><b>${interest ? '~' + nf0.format(interest) : '0'}</b></div></div>
+    <small style="margin-top:8px">Використано ${lim ? Math.round(debt / lim * 100) : 0}% ліміту · вільно ${money0(Math.max(0, lim - debt))}</small></div>`;
+  const slide = Number(localStorage.getItem('fb_hero') || 0);
+  return `<div class="heros" id="heros">${c1}${c2}</div><div class="hdots"><i class="${slide ? '' : 'on'}"></i><i class="${slide ? 'on' : ''}"></i></div>`;
+}
+function initHeros() {
+  const el = $('#heros'); if (!el) return;
+  const slide = Number(localStorage.getItem('fb_hero') || 0);
+  if (slide) el.scrollLeft = el.clientWidth * slide;
+  el.onscroll = () => { clearTimeout(el._t); el._t = setTimeout(() => {
+    const i = Math.round(el.scrollLeft / el.clientWidth); localStorage.setItem('fb_hero', i);
+    document.querySelectorAll('.hdots i').forEach((d, k) => d.classList.toggle('on', k === i)); }, 80); };
+}
+
 /* ---------- Home ---------- */
 function homeBody(parts) { const c = homeCfg(); return c.order.filter(k => !c.hidden[k]).map(k => parts[k] || '').join('\n'); }
 function vHome() {
@@ -596,9 +632,7 @@ function vHome() {
   const recent = mt.sort((a, b) => (b.date + b.u).localeCompare(a.date + a.u)).slice(0, 6);
   const pct = lim ? Math.min(100, spLim / lim * 100) : 0;
   return monthNav() + `
-  <div class="hero"><small>Баланс рахунків${crDebtH ? ' (мінус борг по кредитках)' : ''}</small><div class="big">${money(total)}</div>
-    <div class="hrow"><div><small>Доходи</small><b>${inc ? '+' : ''}${nf0.format(inc)}</b></div><div><small>Витрати</small><b>${exp ? '−' : ''}${nf0.format(exp)}</b></div><div><small>Різниця</small><b>${inc - exp < 0 ? '−' : inc - exp > 0 ? '+' : ''}${nf0.format(Math.abs(inc - exp))}</b></div></div>
-  </div>
+  ${heroCards(inc, exp)}
   ${homeBody({ earn: earnCard(), fx: fxCard(), reg: accCard('reg'), credit: accCard('credit'), save: accCard('save'),
     budget: `<div class="card"><h3>Бюджет місяця <button class="link" data-act="tab" data-id="budget">Відкрити</button></h3>
     ${lim ? `<div style="display:flex;justify-content:space-between"><span>${money0(spLim)} з ${money0(lim)}</span><span class="muted">${Math.round(spLim / lim * 100)}%</span></div>
