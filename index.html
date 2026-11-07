@@ -15,15 +15,15 @@
 <link rel="apple-touch-icon" href="icon-192.png">
 <style>
 :root{
-  --bg:#f4f5f2; --card:#ffffff; --text:#1c1f1d; --muted:#6b726e; --line:#e3e6e1;
-  --accent:#0f766e; --accent-soft:#d6efe9; --inc:#15803d; --exp:#c2410c; --warn:#b45309; --bad:#dc2626;
-  --chip:#eef0ec; --shadow:0 1px 2px rgba(0,0,0,.05),0 2px 8px rgba(0,0,0,.04);
-  --r:16px; --safe-b:env(safe-area-inset-bottom,0px); --safe-t:env(safe-area-inset-top,0px);
+  --bg:#F4F6F8; --card:#FFFFFF; --text:#0F172A; --muted:#64748B; --line:#EEF1F5; --border:rgba(15,23,42,.06);
+  --accent:#4F46E5; --accent2:#7C3AED; --accent-soft:#E0E7FF; --inc:#00A84A; --exp:#FF5252; --warn:#F59E0B; --bad:#E53935;
+  --chip:#F1F4F8; --shadow:0 4px 20px rgba(15,23,42,.05); --glow:rgba(79,70,229,.40);
+  --r:20px; --safe-b:env(safe-area-inset-bottom,0px); --safe-t:env(safe-area-inset-top,0px);
 }
 @media (prefers-color-scheme:dark){
-  :root{--bg:#111413; --card:#1b1f1d; --text:#eef1ee; --muted:#9aa29d; --line:#2b312e;
-    --accent:#2dd4bf; --accent-soft:#133b36; --inc:#4ade80; --exp:#fb923c; --warn:#fbbf24; --bad:#f87171;
-    --chip:#252b28; --shadow:none;}
+  :root{--bg:#0F172A; --card:#1E293B; --text:#F8FAFC; --muted:#94A3B8; --line:rgba(255,255,255,.06); --border:rgba(255,255,255,.08);
+    --accent:#6366F1; --accent2:#8B5CF6; --accent-soft:rgba(99,102,241,.22); --inc:#10B981; --exp:#F43F5E; --warn:#F59E0B; --bad:#F43F5E;
+    --chip:#273449; --shadow:0 4px 20px rgba(0,0,0,.25); --glow:rgba(99,102,241,.45);}
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;background:var(--bg);color:var(--text);font:15px/1.4 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,sans-serif}
@@ -36,20 +36,27 @@ header.top h1{font-size:20px;margin:0;font-weight:700;letter-spacing:-.01em}
 .dot{width:8px;height:8px;border-radius:50%;background:#9ca3af}
 .dot.ok{background:var(--inc)} .dot.pending{background:var(--warn)} .dot.err{background:var(--bad)} .dot.busy{background:var(--accent);animation:pulse 1s infinite}
 @keyframes pulse{50%{opacity:.3}}
-.monthnav{display:flex;align-items:center;justify-content:space-between;background:var(--card);border-radius:var(--r);padding:4px;margin-bottom:12px;box-shadow:var(--shadow)}
+.monthnav{display:flex;align-items:center;justify-content:space-between;background:var(--card);border-radius:var(--r);padding:4px;margin-bottom:12px;box-shadow:var(--shadow);border:1px solid var(--border)}
 .monthnav button{border:0;background:none;width:44px;height:40px;font-size:22px;color:var(--accent);border-radius:12px}
 .monthnav b{font-size:16px}
-.card{background:var(--card);border-radius:var(--r);padding:14px;margin-bottom:12px;box-shadow:var(--shadow)}
+.card{background:var(--card);border-radius:var(--r);padding:16px;margin-bottom:12px;box-shadow:var(--shadow);border:1px solid var(--border)}
 .card h3{margin:0 0 10px;font-size:15px;display:flex;justify-content:space-between;align-items:center}
 .card h3 a,.link{color:var(--accent);font-weight:500;font-size:14px;text-decoration:none;background:none;border:0;padding:0}
+.hero{position:relative;overflow:hidden;border-radius:22px;padding:18px 18px 16px;margin-bottom:12px;color:#fff;
+  background:linear-gradient(135deg,#4F46E5 0%,#7C3AED 100%);box-shadow:0 12px 30px rgba(79,70,229,.35)}
+.hero:after{content:"";position:absolute;right:-40px;top:-60px;width:180px;height:180px;border-radius:50%;background:rgba(255,255,255,.10)}
+.hero small{display:block;opacity:.8;font-size:12px}
+.hero .big{font-size:32px;font-weight:800;letter-spacing:-.02em;margin:2px 0 14px;white-space:nowrap}
+.hero .hrow{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;background:rgba(255,255,255,.12);border-radius:14px;padding:10px 12px}
+.hero .hrow b{font-size:15px;white-space:nowrap}
 .stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
-.stat{background:var(--card);border-radius:14px;padding:10px;box-shadow:var(--shadow)}
+.stat{background:var(--card);border-radius:16px;padding:11px;box-shadow:var(--shadow);border:1px solid var(--border)}
 .stat small{display:block;color:var(--muted);font-size:12px}
 .stat b{font-size:16px;white-space:nowrap}
 .inc{color:var(--inc)} .exp{color:var(--exp)} .muted{color:var(--muted)} .bad{color:var(--bad)}
 .row{display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid var(--line)}
 .row:last-child{border-bottom:0}
-.row .ic{width:36px;height:36px;border-radius:11px;background:var(--chip);display:grid;place-items:center;font-size:18px;flex:none}
+.row .ic{width:38px;height:38px;border-radius:12px;background:var(--chip);display:grid;place-items:center;font-size:18px;flex:none}
 .row .mid{flex:1;min-width:0}
 .row .mid div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .row .mid small{color:var(--muted);font-size:12px}
@@ -59,15 +66,14 @@ header.top h1{font-size:20px;margin:0;font-weight:700;letter-spacing:-.01em}
 .bar{height:8px;background:var(--chip);border-radius:6px;overflow:hidden;margin-top:6px}
 .bar i{display:block;height:100%;background:var(--accent);border-radius:6px}
 .bar i.warn{background:var(--warn)} .bar i.over{background:var(--bad)}
-.fab{position:fixed;right:max(18px,calc(50% - 262px));bottom:calc(var(--safe-b) + 78px);width:58px;height:58px;border-radius:50%;border:0;background:var(--accent);color:#fff;font-size:30px;box-shadow:0 6px 18px rgba(15,118,110,.35);z-index:20}
-@media (prefers-color-scheme:dark){.fab{color:#062f2b}}
+.fab{position:fixed;right:max(18px,calc(50% - 262px));bottom:calc(var(--safe-b) + 78px);width:58px;height:58px;border-radius:50%;border:0;background:linear-gradient(135deg,var(--accent),var(--accent2));color:#fff;font-size:30px;box-shadow:0 8px 25px var(--glow);z-index:20}
 nav.tabs{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--line);display:flex;justify-content:center;padding-bottom:var(--safe-b);z-index:20}
 nav.tabs div{display:flex;max-width:560px;width:100%}
 nav.tabs button{flex:1;border:0;background:none;padding:8px 0 9px;font-size:11px;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:2px}
 nav.tabs button span{font-size:20px;line-height:1}
 nav.tabs button.on{color:var(--accent);font-weight:600}
-.btn{border:0;border-radius:12px;padding:12px 16px;background:var(--accent);color:#fff;font-weight:600}
-@media (prefers-color-scheme:dark){.btn{color:#062f2b}}
+.btn{border:0;border-radius:12px;padding:12px 16px;background:var(--accent);color:#fff;font-weight:600;box-shadow:0 4px 14px var(--glow)}
+.btn.sec,.btn.danger{box-shadow:none}
 .btn.sec{background:var(--chip);color:var(--text)}
 .btn.danger{background:transparent;color:var(--bad);border:1px solid var(--bad)}
 .btn.block{width:100%}
@@ -180,6 +186,12 @@ const parseAmt = s => {
   for (const p of parts) { const v = parseFloat(p); if (isNaN(v)) return NaN; total += v; }
   return Math.round(total * 100) / 100;
 };
+const TINT = { a_card: '#3B82F6', a_cash: '#F59E0B', tr: '#64748B', c_food: '#10B981', c_home: '#6366F1', c_util: '#F59E0B', c_trans: '#0EA5E9', c_car: '#EF4444',
+  c_cafe: '#F97316', c_health: '#EC4899', c_cloth: '#8B5CF6', c_subs: '#06B6D4', c_house: '#14B8A6', c_fun: '#D946EF', c_gift: '#F43F5E', c_edu: '#3B82F6',
+  c_debt: '#64748B', c_other: '#94A3B8', ci_salary: '#10B981', ci_side: '#22C55E', ci_gift: '#F43F5E', ci_debt: '#0EA5E9', ci_other: '#94A3B8' };
+const TPAL = ['#6366F1', '#10B981', '#F59E0B', '#EC4899', '#0EA5E9', '#8B5CF6', '#F97316', '#14B8A6', '#EF4444', '#3B82F6'];
+function tint(id) { if (!id) return '#94A3B8'; if (TINT[id]) return TINT[id]; let h = 0; for (const ch of String(id)) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return TPAL[h % TPAL.length]; }
+const ic = (id, emoji) => `<div class="ic" style="background:${tint(id)}26">${emoji}</div>`;
 const sum = (arr, f = x => x) => arr.reduce((a, x) => a + (Number(f(x)) || 0), 0);
 function toast(msg) { const t = $('#toast'); t.textContent = msg; t.classList.add('show'); clearTimeout(toast._t); toast._t = setTimeout(() => t.classList.remove('show'), 2200); }
 
@@ -369,7 +381,7 @@ function txRow(t) {
   const who = memOf(t.who);
   const cls = t.type === 'inc' ? 'inc' : t.type === 'exp' ? 'exp' : 'muted';
   const v = t.type === 'inc' ? money(+t.amount, true) : t.type === 'exp' ? money(-t.amount) : money(+t.amount);
-  return `<div class="row tap" data-act="editTx" data-id="${t.id}"><div class="ic">${c.emoji}</div>
+  return `<div class="row tap" data-act="editTx" data-id="${t.id}">${ic(t.type === 'tr' ? 'tr' : t.cat, c.emoji)}
     <div class="mid"><div>${esc(t.note || c.name)}</div><small>${t.note ? esc(c.name) + ' · ' : ''}${sub}${who ? ' · ' + esc(who.name) : ''}</small></div>
     <div class="amt ${cls}">${v}</div></div>`;
 }
@@ -387,14 +399,11 @@ function vHome() {
   const recent = mt.sort((a, b) => (b.date + b.u).localeCompare(a.date + a.u)).slice(0, 6);
   const pct = lim ? Math.min(100, spLim / lim * 100) : 0;
   return monthNav() + `
-  <div class="stats" style="margin-bottom:12px">
-    <div class="stat"><small>Доходи</small><b class="inc">${money0(inc)}</b></div>
-    <div class="stat"><small>Витрати</small><b class="exp">${money0(exp)}</b></div>
-    <div class="stat"><small>Залишок</small><b class="${inc - exp < 0 ? 'bad' : ''}">${money0(inc - exp)}</b></div>
+  <div class="hero"><small>Загальний баланс</small><div class="big">${money(total)}</div>
+    <div class="hrow"><div><small>Доходи</small><b>+${nf0.format(inc)}</b></div><div><small>Витрати</small><b>−${nf0.format(exp)}</b></div><div><small>Різниця</small><b>${inc - exp < 0 ? '−' : '+'}${nf0.format(Math.abs(inc - exp))}</b></div></div>
   </div>
   <div class="card"><h3>Рахунки <button class="link" data-act="sub" data-id="accs">Змінити</button></h3>
-    ${as.map(a => `<div class="row"><div class="ic">${esc(a.emoji || '💼')}</div><div class="mid"><div>${esc(a.name)}</div></div><div class="amt ${accBalance(a.id) < 0 ? 'bad' : ''}">${money(accBalance(a.id))}</div></div>`).join('')}
-    <div class="row"><div class="mid"><b>Усього</b></div><div class="amt">${money(total)}</div></div>
+    ${as.map(a => `<div class="row">${ic(a.id, esc(a.emoji || '💼'))}<div class="mid"><div>${esc(a.name)}</div></div><div class="amt ${accBalance(a.id) < 0 ? 'bad' : ''}">${money(accBalance(a.id))}</div></div>`).join('')}
   </div>
   <div class="card"><h3>Бюджет місяця <button class="link" data-act="tab" data-id="budget">Відкрити</button></h3>
     ${lim ? `<div style="display:flex;justify-content:space-between"><span>${money0(spLim)} з ${money0(lim)}</span><span class="muted">${Math.round(spLim / lim * 100)}%</span></div>
@@ -403,7 +412,7 @@ function vHome() {
     : `<p class="hint">Ліміти не задані. Відкрийте «Бюджет», щоб задати ліміти за категоріями.</p>`}
   </div>
   ${recs.length ? `<div class="card"><h3>Платежі до сплати <button class="link" data-act="sub" data-id="recs">Усі</button></h3>
-    ${recs.map(r => `<div class="row"><div class="ic">${catOf(r.cat).emoji}</div><div class="mid"><div>${esc(r.name)}</div><small>до ${r.day} числа · ${esc(accOf(r.acc).name)}</small></div>
+    ${recs.map(r => `<div class="row">${ic(r.cat, catOf(r.cat).emoji)}<div class="mid"><div>${esc(r.name)}</div><small>до ${r.day} числа · ${esc(accOf(r.acc).name)}</small></div>
     <div class="amt">${money(+r.amount)}<br><button class="btn sm" data-act="payRec" data-id="${r.id}">Сплачено</button></div></div>`).join('')}</div>` : ''}
   <div class="card"><h3>Останні операції <button class="link" data-act="tab" data-id="ops">Усі</button></h3>
     ${recent.length ? recent.map(txRow).join('') : '<div class="empty">Поки порожньо. Натисніть «+», щоб додати першу операцію.</div>'}
@@ -452,7 +461,7 @@ function vBudget() {
   <div class="card" style="padding:4px 14px">
   ${rows.map(({ c, l, s }) => {
     const p = l ? s / l : 0; const cls = l && s > l ? 'over' : p > .85 ? 'warn' : '';
-    return `<div class="row tap" data-act="editLimit" data-id="${c.id}" style="flex-wrap:wrap"><div class="ic">${c.emoji}</div>
+    return `<div class="row tap" data-act="editLimit" data-id="${c.id}" style="flex-wrap:wrap">${ic(c.id, c.emoji)}
       <div class="mid"><div>${esc(c.name)} ${l && s > l ? '<span class="pill bad">перевитрата</span>' : ''}</div>
       <small>${money0(s)} ${l ? 'з ' + money0(l) : '· ліміт не задано'}</small>
       ${l ? `<div class="bar"><i class="${cls}" style="width:${Math.min(100, p * 100)}%"></i></div>` : ''}</div>
@@ -461,7 +470,7 @@ function vBudget() {
 }
 
 /* ---------- Analytics ---------- */
-const PAL = ['#0f766e', '#ea580c', '#2563eb', '#ca8a04', '#9333ea', '#db2777', '#16a34a', '#0891b2', '#dc2626', '#4f46e5', '#65a30d', '#a16207', '#64748b'];
+const PAL = ['#6366F1', '#10B981', '#F59E0B', '#F43F5E', '#0EA5E9', '#8B5CF6', '#F97316', '#14B8A6', '#EC4899', '#3B82F6', '#84CC16', '#A855F7', '#64748B'];
 function donut(parts, total) {
   const R = 60, C = 2 * Math.PI * R; let off = 0;
   const segs = parts.map((p, i) => { const len = total ? p.v / total * C : 0; const s = `<circle r="${R}" cx="80" cy="80" fill="none" stroke="${p.color}" stroke-width="22" stroke-dasharray="${len} ${C - len}" stroke-dashoffset="${-off}" transform="rotate(-90 80 80)"/>`; off += len; return s; }).join('');
@@ -582,18 +591,18 @@ function vRecs() {
   return back('Регулярні платежі') + `<button class="btn sm" data-act="editRec">+ Платіж</button></div>${monthNav()}
   <div class="card" style="padding:4px 14px">${rs.length ? rs.map(r => {
     const paid = r.paid && r.paid[m];
-    return `<div class="row"><div class="ic">${catOf(r.cat).emoji}</div><div class="mid tap" data-act="editRec" data-id="${r.id}"><div>${esc(r.name)}</div><small>${r.day} числа · ${esc(accOf(r.acc).name)}</small></div>
+    return `<div class="row">${ic(r.cat, catOf(r.cat).emoji)}<div class="mid tap" data-act="editRec" data-id="${r.id}"><div>${esc(r.name)}</div><small>${r.day} числа · ${esc(accOf(r.acc).name)}</small></div>
       <div class="amt">${money(+r.amount)}<br>${paid ? '<span class="pill ok">сплачено</span>' : `<button class="btn sm" data-act="payRec" data-id="${r.id}">Сплатити</button>`}</div></div>`;
   }).join('') : '<div class="empty">Оренда, комуналка, інтернет, підписки — додайте, і вони нагадуватимуть про себе щомісяця.</div>'}</div>
   ${rs.length ? `<p class="hint" style="margin:0 4px">Разом на місяць: <b>${money0(sum(rs, r => r.amount))}</b></p>` : ''}`;
 }
 function vAccs() {
   return back('Рахунки') + `<button class="btn sm" data-act="editAcc">+ Рахунок</button></div>
-  <div class="card" style="padding:4px 14px">${accs().map(a => `<div class="row tap" data-act="editAcc" data-id="${a.id}"><div class="ic">${esc(a.emoji || '💼')}</div><div class="mid"><div>${esc(a.name)}</div><small>Початковий залишок ${money(+a.init || 0)}</small></div><div class="amt">${money(accBalance(a.id))}</div></div>`).join('')}</div>
+  <div class="card" style="padding:4px 14px">${accs().map(a => `<div class="row tap" data-act="editAcc" data-id="${a.id}">${ic(a.id, esc(a.emoji || '💼'))}<div class="mid"><div>${esc(a.name)}</div><small>Початковий залишок ${money(+a.init || 0)}</small></div><div class="amt">${money(accBalance(a.id))}</div></div>`).join('')}</div>
   <p class="hint" style="margin:0 4px">Щоб перенести гроші між рахунками (зняти готівку, поповнити картку), додайте операцію типу «Переказ».</p>`;
 }
 function vCats() {
-  const sec = (k, t) => `<div class="day"><span>${t}</span></div><div class="card" style="padding:4px 14px">${cats(k).map(c => `<div class="row tap" data-act="editCat" data-id="${c.id}"><div class="ic">${c.emoji}</div><div class="mid"><div>${esc(c.name)}</div></div><div class="amt muted" style="font-weight:400">${k === 'exp' && c.limit ? 'ліміт ' + money0(c.limit) : ''} ›</div></div>`).join('')}</div>`;
+  const sec = (k, t) => `<div class="day"><span>${t}</span></div><div class="card" style="padding:4px 14px">${cats(k).map(c => `<div class="row tap" data-act="editCat" data-id="${c.id}">${ic(c.id, c.emoji)}<div class="mid"><div>${esc(c.name)}</div></div><div class="amt muted" style="font-weight:400">${k === 'exp' && c.limit ? 'ліміт ' + money0(c.limit) : ''} ›</div></div>`).join('')}</div>`;
   return back('Категорії') + `<button class="btn sm" data-act="editCat">+ Категорія</button></div>` + sec('exp', 'Витрати') + sec('inc', 'Доходи');
 }
 
