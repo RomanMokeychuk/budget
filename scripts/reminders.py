@@ -132,6 +132,14 @@ def upcoming(d, today):
             continue
         out.append(('🔁', r.get('name', 'Платіж'), num(r.get('amount')), 'UAH', due_in(today.year, today.month, r.get('day') or 1), 'регулярний платіж'))
     for x in live(d, 'debt'):
+        if x.get('dir') != 'owe' or x.get('due') or num(x.get('monthly')) <= 0:
+            continue
+        left = num(x.get('total')) - sum(num(p.get('amount')) for p in x.get('payments') or [])
+        paid_m = sum(num(p.get('amount')) for p in x.get('payments') or [] if str(p.get('d', '')).startswith(ym))
+        amt = min(left, max(0.0, num(x.get('monthly')) - paid_m))
+        if amt > 0:
+            out.append(('🤝', x.get('person', 'Борг'), amt, 'UAH', due_in(today.year, today.month, x.get('payDay')), 'щомісячний платіж'))
+    for x in live(d, 'debt'):
         if x.get('dir') != 'owe' or not x.get('due'):
             continue
         left = num(x.get('total')) - sum(num(p.get('amount')) for p in x.get('payments') or [])
