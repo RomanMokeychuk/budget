@@ -1,0 +1,39 @@
+name: Курс обмінників Одеси
+
+on:
+  schedule:
+    - cron: '17 * * * *'   # щогодини
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/odesa_rates.py'
+      - '.github/workflows/odesa-rates.yml'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: odesa-rates
+  cancel-in-progress: true
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Отримати курс
+        run: python3 scripts/odesa_rates.py /tmp/rates.json
+
+      - name: Опублікувати в гілку rates
+        run: |
+          mkdir pub && cd pub
+          git init -q -b rates
+          cp /tmp/rates.json .
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add rates.json
+          git commit -qm "rates $(date -u +%FT%TZ)"
+          git push -fq "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" rates
