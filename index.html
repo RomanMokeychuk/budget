@@ -1053,7 +1053,7 @@ document.addEventListener('visibilitychange', () => {
   else {
     if (localStorage.getItem(LS.pin) && Date.now() - hiddenAt > 60000 && hiddenAt) { rebuildPad(); showLock('check'); }
     if (SYNC.token && Date.now() - (SYNC.last || 0) > 20000) syncNow();
-    if (Date.now() - (RATES_AUTO.t || 0) > 3600e3) fetchRates();
+    if (Date.now() - (RATES_AUTO.t || 0) > 600e3) fetchRates();
   }
 });
 window.addEventListener('online', () => SYNC.token && syncNow());
@@ -1118,7 +1118,7 @@ saveLocal(); render();
 setSyncUI(SYNC.token ? (localStorage.getItem(LS.dirty) ? 'pending' : 'ok') : 'off');
 if (localStorage.getItem(LS.pin)) { rebuildPad(); showLock('check'); }
 if (SYNC.token) syncNow();
-if (Date.now() - (RATES_AUTO.t || 0) > 3600e3) fetchRates();
+fetchRates();
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
 </script>
 </body>
