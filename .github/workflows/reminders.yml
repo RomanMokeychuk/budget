@@ -1,0 +1,28 @@
+name: Нагадування про платежі
+
+on:
+  schedule:
+    - cron: '41 6 * * *'   # щодня ≈ 08:41–09:41 за Києвом (залежно від літнього/зимового часу)
+  workflow_dispatch:
+    inputs:
+      force:
+        description: 'Надіслати тестове повідомлення навіть без термінових платежів'
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+  remind:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - name: Перевірити платежі й надіслати в Telegram
+        env:
+          DATA_TOKEN: ${{ secrets.DATA_TOKEN }}
+          TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
+          TG_CHAT_IDS: ${{ secrets.TG_CHAT_IDS }}
+          FORCE: ${{ inputs.force }}
+        run: python3 scripts/reminders.py

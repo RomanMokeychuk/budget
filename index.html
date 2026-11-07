@@ -456,6 +456,53 @@ function txRow(t) {
     <div class="amt ${cls}">${v}</div></div>`;
 }
 
+/* ---------- Credit cards & upcoming payments ---------- */
+const day0 = d => { const x = new Date(d); x.setHours(0, 0, 0, 0); return x; };
+const ymOf = d => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}`;
+function dueIn(ym, day) { const [y, m] = ym.split('-').map(Number); const dim = new Date(y, m, 0).getDate(); return new Date(y, m - 1, day ? Math.min(day, dim) : dim); }
+function minPay(a, debt) {
+  if (debt <= 0) return 0;
+  const pct = (a.minPct === '' || a.minPct == null) ? 5 : Number(a.minPct); const floor = Number(a.minFloor) || 0;
+  return Math.min(debt, Math.max(Math.ceil(debt * pct / 100), floor));
+}
+function creditInfo(a, ref = new Date()) {
+  const debt = Math.max(0, -accBalance(a.id)), ym = ymOf(ref);
+  const paid = sum(txs().filter(t => t.date && t.date.startsWith(ym) && ((t.type === 'tr' && t.acc2 === a.id) || (t.type === 'inc' && t.acc === a.id))),
+    t => (t.type === 'tr' && t.amount2 != null && t.amount2 !== '') ? Number(t.amount2) : Number(t.amount));
+  const min = minPay(a, debt + paid), minLeft = a.minPaid === ym ? 0 : Math.max(0, Math.round((min - paid) * 100) / 100);
+  const due = dueIn(ym, Number(a.payDay) || 0), nextDue = dueIn(ymOf(new Date(ref.getFullYear(), ref.getMonth() + 1, 1)), Number(a.payDay) || 0);
+  return { debt, paid, min, minLeft, due, nextDue, nextMin: minPay(a, debt), interest: debt * (Number(a.rate) || 0) / 100 };
+}
+function upcoming() {
+  const now = new Date(), ym = ymOf(now), out = [];
+  for (const a of accs().filter(a => akind(a) === 'credit')) {
+    const ci = creditInfo(a, now); const c = accCur(a);
+    const extra = `повний борг ${moneyC(ci.debt, c)}${ci.interest ? ` · ~${moneyC(ci.interest, c)} відсотків/міс` : ''}`;
+    if (ci.minLeft > 0) out.push({ ic: ic(a.id, esc(a.emoji || '💳')), name: a.name, amount: ci.minLeft, cur: c, due: ci.due, sub: 'мінімальний платіж · ' + extra, act: 'payCredit', id: a.id });
+    else if (ci.debt > 0) out.push({ ic: ic(a.id, esc(a.emoji || '💳')), name: a.name, amount: ci.nextMin, cur: c, due: ci.nextDue, sub: 'мінімальний цього місяця внесено ✓ · ' + extra, act: 'payCredit', id: a.id, later: true });
+  }
+  for (const r of list('rec')) if (!(r.paid && r.paid[ym])) out.push({ ic: ic(r.cat, catOf(r.cat).emoji), name: r.name, amount: Number(r.amount), cur: 'UAH', due: dueIn(ym, r.day), sub: accOf(r.acc).name, act: 'payRec', id: r.id, edit: 'editRec' });
+  for (const d of list('debt')) if (d.dir === 'owe' && d.due && debtLeft(d) > 0) out.push({ ic: '<div class="ic">🤝</div>', name: d.person, amount: debtLeft(d), cur: 'UAH', due: new Date(d.due), sub: 'повернути борг', act: 'debtPay', id: d.id });
+  const t0 = day0(now);
+  out.forEach(x => x.days = Math.round((day0(x.due) - t0) / 864e5));
+  return out.sort((a, b) => a.days - b.days);
+}
+function dueLabel(x) {
+  const ds = x.due.toLocaleDateString('uk-UA', { day: 'numeric', month: 'long' });
+  if (x.days < 0) return `<span class="pill bad">прострочено ${-x.days} дн.</span> ${ds}`;
+  if (x.days === 0) return `<span class="pill bad">сьогодні</span>`;
+  if (x.days === 1) return `<span class="pill bad">завтра</span>`;
+  return `до ${ds}${x.days <= 7 ? ` <span class="pill">через ${x.days} дн.</span>` : ''}`;
+}
+function upcomingCard() {
+  const items = upcoming().filter(x => x.days <= 31);
+  if (!items.length) return '';
+  return `<div class="card"><h3>⏰ Платежі до сплати <button class="link" data-act="sub" data-id="recs">Регулярні</button></h3>
+    ${items.map(x => `<div class="row">${x.ic}<div class="mid ${x.edit ? 'tap' : ''}" ${x.edit ? `data-act="${x.edit}" data-id="${x.id}"` : ''}><div>${esc(x.name)}</div><small>${dueLabel(x)}</small><br><small>${x.sub}</small></div>
+      <div class="amt">${moneyC(x.amount, x.cur)}<br><button class="btn sm ${x.later ? 'sec' : ''}" data-act="${x.act}" data-id="${x.id}">${x.act === 'payRec' ? 'Сплачено' : 'Сплатити'}</button>
+      ${x.act === 'payCredit' && !x.later ? `<br><button class="link" style="font-size:12px;margin-top:6px" data-act="minPaid" data-id="${x.id}">вже сплачено</button>` : ''}</div></div>`).join('')}</div>`;
+}
+
 /* ---------- Accounts blocks ---------- */
 function accRow(a, tap) {
   const b = accBalance(a.id), c = accCur(a);
@@ -463,7 +510,8 @@ function accRow(a, tap) {
   if (akind(a) === 'credit') {
     const lim = Number(a.limit) || 0, debt = Math.max(0, -b), avail = lim + b, p = lim ? debt / lim : 0;
     return `<div ${attrs} style="flex-wrap:wrap">${ic(a.id, esc(a.emoji || '💳'))}<div class="mid"><div>${esc(a.name)}</div>
-      <small>${lim ? 'Доступно ' + moneyC(avail, c) + ' з ' + moneyC(lim, c) : 'Ліміт не вказано'}${a.payDay ? ' · платіж до ' + a.payDay + ' числа' : ''}</small>
+      <small>${lim ? 'Доступно ' + moneyC(avail, c) + ' з ' + moneyC(lim, c) : 'Ліміт не вказано'}</small>
+      ${debt ? (() => { const ci = creditInfo(a); return `<br><small>${ci.minLeft > 0 ? `Мін. платіж <b>${moneyC(ci.minLeft, c)}</b> до ${ci.due.toLocaleDateString('uk-UA', { day: 'numeric', month: 'short' })}` : '✓ Мінімальний платіж внесено'}${ci.interest ? ` · ~${moneyC(ci.interest, c)} відсотків/міс` : ''}</small>`; })() : ''}
       ${lim ? `<div class="bar"><i class="${p > .85 ? 'over' : p > .5 ? 'warn' : ''}" style="width:${Math.min(100, p * 100)}%"></i></div>` : ''}</div>
       <div class="amt ${debt ? 'exp' : 'inc'}">${debt ? '−' + moneyC(debt, c) : moneyC(0, c)}<br><small class="muted" style="font-weight:400;font-size:11px">${debt ? 'борг' : 'без боргу'}</small></div></div>`;
   }
@@ -492,7 +540,7 @@ const accBlocks = tap => ['reg', 'save', 'credit'].map(k => accCard(k, tap)).joi
 
 /* ---------- Home layout ---------- */
 const HOME_BLOCKS = [['earn', '🫖 Заробіток (зміни)'], ['fx', '💵 Курс долара'], ['reg', '👛 Рахунки'], ['credit', '💳 Кредитки'], ['save', '🏦 Збереження'],
-  ['budget', '🎯 Бюджет місяця'], ['recs', '🔁 Платежі до сплати'], ['recent', '📋 Останні операції']];
+  ['budget', '🎯 Бюджет місяця'], ['recs', '⏰ Платежі до сплати'], ['recent', '📋 Останні операції']];
 function homeCfg() {
   let c = {}; try { c = JSON.parse(localStorage.getItem('fb_home')) || {}; } catch (e) {}
   const all = HOME_BLOCKS.map(b => b[0]);
@@ -537,9 +585,7 @@ function vHome() {
     ${over.length ? `<p class="hint bad">Перевитрата: ${over.map(c => `${c.emoji} ${esc(c.name)} (+${money0((sp[c.id] || 0) - limitFor(c.id, m))})`).join(', ')}</p>` : '<p class="hint">Усі категорії в межах лімітів 👍</p>'}`
     : `<p class="hint">Ліміти не задані. Відкрийте «Бюджет», щоб задати ліміти за категоріями.</p>`}
   </div>`,
-    recs: recs.length ? `<div class="card"><h3>Платежі до сплати <button class="link" data-act="sub" data-id="recs">Усі</button></h3>
-    ${recs.map(r => `<div class="row">${ic(r.cat, catOf(r.cat).emoji)}<div class="mid tap" data-act="editRec" data-id="${r.id}"><div>${esc(r.name)}</div><small>до ${r.day} числа · ${esc(accOf(r.acc).name)}</small></div>
-    <div class="amt">${money(+r.amount)}<br><button class="btn sm" data-act="payRec" data-id="${r.id}">Сплачено</button></div></div>`).join('')}</div>` : '',
+    recs: upcomingCard(),
     recent: `<div class="card"><h3>Останні операції <button class="link" data-act="tab" data-id="ops">Усі</button></h3>
     ${recent.length ? recent.map(txRow).join('') : '<div class="empty">Поки порожньо. Натисніть «+», щоб додати першу операцію.</div>'}
   </div>` })}
@@ -999,7 +1045,11 @@ function accForm(id, kind0) {
     <label class="f">Назва</label><div style="display:flex;gap:8px"><input class="in" name="emoji" value="${esc(a?.emoji || emo[kind])}" style="width:64px;text-align:center"><input class="in" name="name" value="${esc(a?.name || '')}" required></div>
     <label class="f">Валюта</label><select class="in" name="cur">${Object.keys(CURS).map(c => `<option value="${c}" ${accCur(a) === c ? 'selected' : ''}>${CURS[c]} ${CUR_NAMES[c]} (${c})</option>`).join('')}</select>
     <div id="crf"><label class="f">Кредитний ліміт</label>${amtField('limit', a?.limit || '')}
-      <label class="f">День щомісячного платежу (необовʼязково)</label><input class="in" type="number" name="payDay" min="1" max="31" value="${esc(a?.payDay || '')}"></div>
+      <label class="f">До якого числа платити (порожньо — до кінця місяця)</label><input class="in" type="number" name="payDay" min="1" max="31" value="${esc(a?.payDay || '')}">
+      <div style="display:flex;gap:8px"><div style="flex:1"><label class="f">Мін. платіж, % від боргу</label><input class="in" name="minPct" inputmode="decimal" value="${esc(a?.minPct ?? 5)}"></div>
+      <div style="flex:1"><label class="f">Але не менше, ₴</label><input class="in" name="minFloor" inputmode="decimal" value="${esc(a?.minFloor ?? '')}" placeholder="0"></div></div>
+      <label class="f">Відсоткова ставка, % на місяць (якщо поза пільговим періодом)</label><input class="in" name="rate" inputmode="decimal" value="${esc(a?.rate ?? '')}" placeholder="напр. 3,1">
+      <p class="hint">Умови дивіться в застосунку банку: «Деталі кредиту». Якщо мінімальний платіж відрізняється — підправте відсоток.</p></div>
     <label class="f" id="initL"></label>${amtField('init', initShown)}
     <p class="hint" id="accH"></p>
     <div class="btns">${a ? `<button type="button" class="btn danger" data-act="delAcc" data-id="${a.id}">Видалити</button>` : ''}<button class="btn" type="submit">Зберегти</button></div></form>`, p => {
@@ -1019,7 +1069,9 @@ function accForm(id, kind0) {
       let init = fval(f, 'init') === '' ? 0 : parseAmt(fval(f, 'init')); if (isNaN(init)) return toast('Невірна сума');
       if (k === 'credit') init = -Math.abs(init);
       const rec = { ...(a || { order: accs().length }), kind: k, cur: fval(f, 'cur'), name: fval(f, 'name').trim(), emoji: fval(f, 'emoji').trim(), init };
-      if (k === 'credit') { rec.limit = parseAmt(fval(f, 'limit')) || 0; rec.payDay = Math.min(31, Math.max(0, parseInt(fval(f, 'payDay')) || 0)) || ''; } else { delete rec.limit; delete rec.payDay; }
+      if (k === 'credit') { rec.limit = parseAmt(fval(f, 'limit')) || 0; rec.payDay = Math.min(31, Math.max(0, parseInt(fval(f, 'payDay')) || 0)) || '';
+        const n = v => { const x = parseAmt(v); return isNaN(x) ? '' : x; }; rec.minPct = n(fval(f, 'minPct')); rec.minFloor = n(fval(f, 'minFloor')); rec.rate = n(fval(f, 'rate')); }
+      else { delete rec.limit; delete rec.payDay; delete rec.minPct; delete rec.minFloor; delete rec.rate; }
       put('acc', rec); closeSheet(); render();
       if (rec.cur !== 'UAH' && !getSetting('rates')?.manual && !RATES_AUTO.t) fetchRates();
     };
@@ -1061,6 +1113,9 @@ function openSettings() {
   <div class="card"><h3>👨‍👩‍👧 Члени родини</h3>
     ${members().map(m => `<div class="row"><div class="mid">${esc(m.name)}</div><button class="link" data-act="editMem" data-id="${m.id}">Змінити</button></div>`).join('')}
     <div class="btns"><button class="btn sec sm" data-act="editMem">+ Додати</button></div></div>
+  <div class="card"><h3>🔔 Нагадування в Telegram</h3>
+    <p class="hint" style="margin-top:0">Щоранку GitHub перевіряє платежі (кредитки, регулярні, борги з датою) і надсилає повідомлення в Telegram. Налаштовується один раз — інструкція в README репозиторію.</p>
+    <div class="row"><div class="mid">Нагадувати за</div><input class="in" id="remDays" type="number" min="0" max="14" value="${getSetting('remind')?.days ?? 3}" style="width:70px;text-align:center"><span class="muted">дн.</span><button class="btn sec sm" data-act="saveRemind">OK</button></div></div>
   <div class="card"><h3>🔒 PIN-код на цьому пристрої</h3>
     <p class="hint" style="margin-top:0">${localStorage.getItem(LS.pin) ? 'PIN встановлено.' : 'Без PIN-коду.'} PIN захищає від випадкового перегляду, зберігається лише на цьому телефоні.</p>
     <div class="btns">${localStorage.getItem(LS.pin) ? '<button class="btn sec sm" data-act="pinOff">Прибрати PIN</button>' : ''}<button class="btn sec sm" data-act="pinSet">${localStorage.getItem(LS.pin) ? 'Змінити PIN' : 'Встановити PIN'}</button></div></div>
@@ -1171,6 +1226,11 @@ const ACT = {
   editAcc: id => accForm(id),
   newAcc: kind => accForm(null, kind),
   homeSettings,
+  payCredit: id => { const a = get('acc', id); const ci = creditInfo(a); const from = (lastTx.acc && lastTx.acc !== id && akind(get('acc', lastTx.acc)) === 'reg') ? lastTx.acc : accs().find(x => akind(x) === 'reg')?.id;
+    txForm(null, { type: 'tr', acc: from, acc2: id, amount: ci.minLeft || ci.nextMin || '', note: 'Погашення ' + a.name }); },
+  minPaid: id => { const a = get('acc', id); if (!confirm(`Позначити, що мінімальний платіж по «${a.name}» за цей місяць уже внесено? (суму боргу вкажіть у налаштуваннях картки)`)) return;
+    put('acc', { ...a, minPaid: ymOf(new Date()) }); render(); toast('Позначено ✓'); },
+  saveRemind: () => { const v = parseInt($('#remDays').value); setSetting('remind', { days: isNaN(v) ? 3 : Math.max(0, Math.min(14, v)) }); toast('Збережено ✓'); },
   shift: date => shiftForm(date),
   earnWho: id => { UI.earnWho = id; render(); },
   setMe: id => { localStorage.setItem('fb_me', id); lastTx.who = id; localStorage.setItem('fb_last', JSON.stringify(lastTx)); openSettings(); render(); toast('Збережено ✓'); },
