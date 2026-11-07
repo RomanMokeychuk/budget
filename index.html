@@ -61,6 +61,9 @@ header.top h1{font-size:20px;margin:0;font-weight:700;letter-spacing:-.01em}
 .cd b{font-size:11px;color:var(--inc);font-weight:700}
 .cd.has{background:rgba(16,185,129,.16)}
 .cd.today{outline:2px solid var(--accent)}
+.drag{cursor:grab;touch-action:none;font-size:20px;color:var(--muted);padding:6px 4px;user-select:none}
+.row.dragging{opacity:.6;background:var(--accent-soft);border-radius:12px}
+.reorder-btn{display:block;margin:6px auto 0;background:none;border:0;color:var(--muted);font-size:13px}
 .stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
 .stat{background:var(--card);border-radius:16px;padding:11px;box-shadow:var(--shadow);border:1px solid var(--border)}
 .stat small{display:block;color:var(--muted);font-size:12px}
@@ -553,13 +556,24 @@ function homeCfg() {
 const saveHomeCfg = c => localStorage.setItem('fb_home', JSON.stringify(c));
 function homeSettings() {
   const c = homeCfg(); const name = Object.fromEntries(HOME_BLOCKS);
-  openSheet('Налаштувати головну', `<p class="hint" style="margin-top:0">Увімкніть блоки, які хочете бачити, і стрілками змініть порядок. Налаштування діє на цьому телефоні.</p>
-    <div class="card" style="padding:4px 14px">${c.order.map((k, i) => `<div class="row">
+  openSheet('Налаштувати головну', `<p class="hint" style="margin-top:0">Перетягніть блок за ⠿, щоб змінити порядок (або стрілками). Галочка — показувати чи ні. Налаштування діє на цьому телефоні.</p>
+    <div class="card" style="padding:4px 14px" id="hsl">${c.order.map((k, i) => `<div class="row" data-k="${k}"><span class="drag" data-drag="${k}">⠿</span>
       <label class="check" style="margin:0;flex:1"><input type="checkbox" data-hk="${k}" ${c.hidden[k] ? '' : 'checked'}> ${name[k]}</label>
       <button class="x" data-act="homeMove" data-id="${k}" data-d="-1" ${i === 0 ? 'disabled style="opacity:.3"' : ''}>↑</button>
       <button class="x" data-act="homeMove" data-id="${k}" data-d="1" ${i === c.order.length - 1 ? 'disabled style="opacity:.3"' : ''}>↓</button></div>`).join('')}</div>
     <div class="btns"><button class="btn sec" data-act="homeReset">Скинути</button><button class="btn" data-act="closeSheet">Готово</button></div>`, p => {
     p.querySelectorAll('input[data-hk]').forEach(ch => ch.onchange = () => { const c = homeCfg(); c.hidden[ch.dataset.hk] = !ch.checked; saveHomeCfg(c); render(); });
+    const box = p.querySelector('#hsl'); let drag = null;
+    box.addEventListener('pointerdown', e => { const h = e.target.closest('[data-drag]'); if (!h) return; e.preventDefault(); drag = h.closest('.row'); drag.classList.add('dragging'); h.setPointerCapture(e.pointerId); });
+    box.addEventListener('pointermove', e => {
+      if (!drag) return; e.preventDefault();
+      const rows = [...box.querySelectorAll('.row')].filter(r => r !== drag);
+      const after = rows.find(r => { const b = r.getBoundingClientRect(); return e.clientY < b.top + b.height / 2; });
+      if (after) box.insertBefore(drag, after); else box.appendChild(drag);
+    });
+    const end = () => { if (!drag) return; drag.classList.remove('dragging'); drag = null;
+      const c = homeCfg(); c.order = [...box.querySelectorAll('.row')].map(r => r.dataset.k); saveHomeCfg(c); render(); homeSettings(); };
+    box.addEventListener('pointerup', end); box.addEventListener('pointercancel', end);
   });
 }
 
@@ -592,7 +606,7 @@ function vHome() {
     recent: `<div class="card"><h3>Останні операції <button class="link" data-act="tab" data-id="ops">Усі</button></h3>
     ${recent.length ? recent.map(txRow).join('') : '<div class="empty">Поки порожньо. Натисніть «+», щоб додати першу операцію.</div>'}
   </div>` })}
-  <button class="btn sec block" data-act="homeSettings" style="margin-top:4px">⚙️ Налаштувати головну</button>`;
+  <button class="btn sec block" data-act="homeSettings" style="margin-top:4px">↕️ Змінити порядок і блоки на головній</button>`;
 }
 
 /* ---------- Earnings (shifts, tips) ---------- */
