@@ -511,7 +511,10 @@ function accRow(a, tap) {
     const lim = Number(a.limit) || 0, debt = Math.max(0, -b), avail = lim + b, p = lim ? debt / lim : 0;
     return `<div ${attrs} style="flex-wrap:wrap">${ic(a.id, esc(a.emoji || '💳'))}<div class="mid"><div>${esc(a.name)}</div>
       <small>${lim ? 'Доступно ' + moneyC(avail, c) + ' з ' + moneyC(lim, c) : 'Ліміт не вказано'}</small>
-      ${debt ? (() => { const ci = creditInfo(a); return `<br><small>${ci.minLeft > 0 ? `Мін. платіж <b>${moneyC(ci.minLeft, c)}</b> до ${ci.due.toLocaleDateString('uk-UA', { day: 'numeric', month: 'short' })}` : '✓ Мінімальний платіж внесено'}${ci.interest ? ` · ~${moneyC(ci.interest, c)} відсотків/міс` : ''}</small>`; })() : ''}
+      ${debt ? (() => { const ci = creditInfo(a); return `<br><small>${ci.minLeft > 0
+        ? `Обовʼязковий платіж: <b class="exp">${moneyC(ci.minLeft, c)}</b> до ${ci.due.toLocaleDateString('uk-UA', { day: 'numeric', month: 'long' })}`
+        : `✓ За ${ci.due.toLocaleDateString('uk-UA', { month: 'long' })} внесено<br>Наступний обовʼязковий: <b>${moneyC(ci.nextMin, c)}</b> до ${ci.nextDue.toLocaleDateString('uk-UA', { day: 'numeric', month: 'long' })}`}
+        ${ci.interest ? `<br>Відсотки ~${moneyC(ci.interest, c)}/міс` : ''}</small>`; })() : ''}
       ${lim ? `<div class="bar"><i class="${p > .85 ? 'over' : p > .5 ? 'warn' : ''}" style="width:${Math.min(100, p * 100)}%"></i></div>` : ''}</div>
       <div class="amt ${debt ? 'exp' : 'inc'}">${debt ? '−' + moneyC(debt, c) : moneyC(0, c)}<br><small class="muted" style="font-weight:400;font-size:11px">${debt ? 'борг' : 'без боргу'}</small></div></div>`;
   }
