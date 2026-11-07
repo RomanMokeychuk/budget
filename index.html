@@ -179,6 +179,38 @@ const nf0 = new Intl.NumberFormat('uk-UA', { maximumFractionDigits: 0 });
 const cur = () => (getSetting('currency') || '₴');
 const money = (v, sign) => (sign && v > 0 ? '+' : '') + (v < 0 ? '−' : '') + nf.format(Math.abs(Math.round(v * 100) / 100)) + ' ' + cur();
 const money0 = v => (v < 0 ? '−' : '') + nf0.format(Math.abs(v)) + ' ' + cur();
+const CURS = { UAH: '₴', USD: '$' };
+const CUR_NAMES = { UAH: 'гривня', USD: 'долар' };
+const FX = ['USD'];
+const accCur = a => (a && a.cur && CURS[a.cur]) ? a.cur : 'UAH';
+const akind = a => (a && a.kind) || 'reg';
+const DEFAULT_RATES = { USD: 41.5 };
+let RATES_AUTO = {}; try { RATES_AUTO = JSON.parse(localStorage.getItem('fb_rates')) || {}; } catch (e) {}
+function rates() { const m = getSetting('rates'); if (m && m.manual) return m; return { ...DEFAULT_RATES, ...RATES_AUTO }; }
+function rateOf(c) { if (!c || c === 'UAH') return 1; return Number(rates()[c]) || DEFAULT_RATES[c] || 1; }
+const toBase = (v, c) => v * rateOf(c);
+const tBase = t => toBase(Number(t.amount) || 0, accCur(get('acc', t.acc)));
+function moneyC(v, c, sign) {
+  if (!c || c === 'UAH') return money(v, sign);
+  return (sign && v > 0 ? '+' : '') + (v < 0 ? '−' : '') + nf.format(Math.abs(Math.round(v * 100) / 100)) + ' ' + CURS[c];
+}
+async function fetchRates(manual) {
+  let got = null;
+  try {
+    const r = await fetch('https://bank.gov.ua/NBUStatService/v1/statdirectory/exchange?json', { cache: 'no-store' });
+    const j = await r.json(); const o = {};
+    for (const x of j) if (FX.includes(x.cc)) { o[x.cc] = x.rate; o.date = x.exchangedate; }
+    if (o.USD) { o.src = 'НБУ'; got = o; }
+  } catch (e) {}
+  if (!got) try {
+    const r = await fetch('https://api.monobank.ua/bank/currency', { cache: 'no-store' });
+    const j = await r.json(); const codes = { 840: 'USD' }; const o = {};
+    for (const x of j) if (x.currencyCodeB === 980 && codes[x.currencyCodeA]) o[codes[x.currencyCodeA]] = x.rateCross || (x.rateBuy + x.rateSell) / 2;
+    if (o.USD) { o.src = 'Monobank'; o.date = new Date().toLocaleDateString('uk-UA'); got = o; }
+  } catch (e) {}
+  if (got) { got.t = Date.now(); RATES_AUTO = got; localStorage.setItem('fb_rates', JSON.stringify(got)); render(); if (manual) toast(`Курс оновлено (${got.src}) ✓`); }
+  else if (manual) toast('Не вдалося отримати курс — введіть вручну');
+}
 const parseAmt = s => {
   s = String(s ?? '').replace(/\s/g, '').replace(/,/g, '.');
   if (!s || !/^[\d.+\-]+$/.test(s)) return NaN;
@@ -205,7 +237,7 @@ function seed() {
   [['c_food','🛒','Продукти'],['c_home','🏠','Житло, оренда'],['c_util','💡','Комуналка'],['c_trans','🚌','Транспорт'],
    ['c_car','⛽','Авто'],['c_cafe','🍽️','Кафе, доставка'],['c_health','💊','Здоровʼя'],['c_cloth','👕','Одяг'],
    ['c_subs','📱','Звʼязок, підписки'],['c_house','🧴','Дім, побут'],['c_fun','🎉','Розваги'],['c_gift','🎁','Подарунки'],
-   ['c_edu','📚','Навчання'],['c_debt','💳','Борги, кредити'],['c_other','📦','Інше']]
+   ['c_edu','📚','Навчання'],['c_debt','💳','Борги, кредити'],['c_fee','🏦','Відсотки, комісії'],['c_other','📦','Інше']]
     .forEach(([id, emoji, name], i) => add('cat', { id, emoji, name, kind: 'exp', order: i, limit: 0 }));
   [['ci_salary','💰','Зарплата'],['ci_side','💵','Підробіток'],['ci_gift','🎁','Подарунки'],['ci_debt','🤝','Повернення боргу'],['ci_other','🔄','Інше']]
     .forEach(([id, emoji, name], i) => add('cat', { id, emoji, name, kind: 'inc', order: 100 + i }));
@@ -249,7 +281,7 @@ function accBalance(id) {
     const v = Number(t.amount) || 0;
     if (t.type === 'inc' && t.acc === id) b += v;
     else if (t.type === 'exp' && t.acc === id) b -= v;
-    else if (t.type === 'tr') { if (t.acc === id) b -= v; if (t.acc2 === id) b += v; }
+    else if (t.type === 'tr') { if (t.acc === id) b -= v; if (t.acc2 === id) b += (t.amount2 != null && t.amount2 !== '') ? Number(t.amount2) : v; }
   }
   return b;
 }
@@ -259,7 +291,7 @@ function limitFor(catId, m) {
   return Number(get('cat', catId)?.limit) || 0;
 }
 function spentByCat(m) {
-  const r = {}; for (const t of monthTx(m)) if (t.type === 'exp') r[t.cat] = (r[t.cat] || 0) + Number(t.amount); return r;
+  const r = {}; for (const t of monthTx(m)) if (t.type === 'exp') r[t.cat] = (r[t.cat] || 0) + tBase(t); return r;
 }
 
 /* ============ sync with GitHub (private repo) ============ */
@@ -380,17 +412,52 @@ function txRow(t) {
   const sub = t.type === 'tr' ? `${esc(accOf(t.acc).name)} → ${esc(accOf(t.acc2).name)}` : esc(accOf(t.acc).name);
   const who = memOf(t.who);
   const cls = t.type === 'inc' ? 'inc' : t.type === 'exp' ? 'exp' : 'muted';
-  const v = t.type === 'inc' ? money(+t.amount, true) : t.type === 'exp' ? money(-t.amount) : money(+t.amount);
+  const c0 = accCur(get('acc', t.acc));
+  const v = t.type === 'inc' ? moneyC(+t.amount, c0, true) : t.type === 'exp' ? moneyC(-t.amount, c0)
+    : moneyC(+t.amount, c0) + ((t.amount2 != null && t.amount2 !== '') ? '<br><small class="muted">→ ' + moneyC(+t.amount2, accCur(get('acc', t.acc2))) + '</small>' : '');
   return `<div class="row tap" data-act="editTx" data-id="${t.id}">${ic(t.type === 'tr' ? 'tr' : t.cat, c.emoji)}
     <div class="mid"><div>${esc(t.note || c.name)}</div><small>${t.note ? esc(c.name) + ' · ' : ''}${sub}${who ? ' · ' + esc(who.name) : ''}</small></div>
     <div class="amt ${cls}">${v}</div></div>`;
 }
 
+/* ---------- Accounts blocks ---------- */
+function accRow(a, tap) {
+  const b = accBalance(a.id), c = accCur(a);
+  const attrs = tap ? `class="row tap" data-act="editAcc" data-id="${a.id}"` : 'class="row"';
+  if (akind(a) === 'credit') {
+    const lim = Number(a.limit) || 0, debt = Math.max(0, -b), avail = lim + b, p = lim ? debt / lim : 0;
+    return `<div ${attrs} style="flex-wrap:wrap">${ic(a.id, esc(a.emoji || '💳'))}<div class="mid"><div>${esc(a.name)}</div>
+      <small>${lim ? 'Доступно ' + moneyC(avail, c) + ' з ' + moneyC(lim, c) : 'Ліміт не вказано'}${a.payDay ? ' · платіж до ' + a.payDay + ' числа' : ''}</small>
+      ${lim ? `<div class="bar"><i class="${p > .85 ? 'over' : p > .5 ? 'warn' : ''}" style="width:${Math.min(100, p * 100)}%"></i></div>` : ''}</div>
+      <div class="amt ${debt ? 'exp' : 'inc'}">${debt ? '−' + moneyC(debt, c) : moneyC(0, c)}<br><small class="muted" style="font-weight:400;font-size:11px">${debt ? 'борг' : 'без боргу'}</small></div></div>`;
+  }
+  return `<div ${attrs}>${ic(a.id, esc(a.emoji || (akind(a) === 'save' ? '🏦' : '👛')))}<div class="mid"><div>${esc(a.name)}</div>${c !== 'UAH' ? `<small>≈ ${money0(toBase(b, c))}</small>` : ''}</div>
+    <div class="amt ${b < 0 ? 'bad' : ''}">${moneyC(b, c)}</div></div>`;
+}
+function accBlocks(tap) {
+  const g = k => accs().filter(a => akind(a) === k);
+  const reg = g('reg'), sav = g('save'), cr = g('credit');
+  const savT = sum(sav, a => toBase(accBalance(a.id), accCur(a)));
+  const crDebt = sum(cr, a => toBase(Math.max(0, -accBalance(a.id)), accCur(a)));
+  const fx = [...new Set(accs().map(accCur).filter(c => c !== 'UAH'))]; const r = rates();
+  const add = k => `<button class="link" data-act="newAcc" data-id="${k}">+ Додати</button>`;
+  const rateLine = fx.length ? `<p class="hint">Курс: ${fx.map(c => `1 ${CURS[c]} = ${nf.format(rateOf(c))} ₴`).join(' · ')}${r.manual ? ' (вручну)' : r.date ? ` (${r.src || 'НБУ'}, ${r.date})` : ''}</p>` : '';
+  return `<div class="card"><h3>👛 Рахунки ${tap ? add('reg') : '<button class="link" data-act="sub" data-id="accs">Змінити</button>'}</h3>
+    ${reg.map(a => accRow(a, tap)).join('') || '<p class="hint" style="margin:0">Немає рахунків</p>'}</div>
+  <div class="card"><h3>🏦 Збереження ${sav.length && !tap ? `<span style="font-weight:700">${money0(savT)}</span>` : add('save')}</h3>
+    ${sav.length ? sav.map(a => accRow(a, tap)).join('') + (tap && sav.length ? `<div class="row"><div class="mid"><b>Усього</b></div><div class="amt">${money0(savT)}</div></div>` : '') + rateLine
+      : '<p class="hint" style="margin:0">Відкладені гроші в гривні чи доларах — окремо від щоденних рахунків.</p>'}</div>
+  <div class="card"><h3>💳 Кредитки ${cr.length && !tap ? `<span class="exp" style="font-weight:700">${crDebt ? '−' + money0(crDebt) : ''}</span>` : add('credit')}</h3>
+    ${cr.length ? cr.map(a => accRow(a, tap)).join('') + (tap ? `<div class="row"><div class="mid"><b>Загальний борг</b></div><div class="amt exp">${crDebt ? '−' : ''}${money0(crDebt)}</div></div>` : '')
+      : '<p class="hint" style="margin:0">Кредитні картки різних банків: борг, доступний ліміт і день платежу.</p>'}</div>`;
+}
+
 /* ---------- Home ---------- */
 function vHome() {
   const m = UI.month, mt = monthTx(m);
-  const inc = sum(mt.filter(t => t.type === 'inc'), t => t.amount), exp = sum(mt.filter(t => t.type === 'exp'), t => t.amount);
-  const as = accs(); const total = sum(as, a => accBalance(a.id));
+  const inc = sum(mt.filter(t => t.type === 'inc'), tBase), exp = sum(mt.filter(t => t.type === 'exp'), tBase);
+  const as = accs(); const total = sum(as, a => toBase(accBalance(a.id), accCur(a)));
+  const crDebtH = sum(as.filter(a => akind(a) === 'credit'), a => toBase(Math.max(0, -accBalance(a.id)), accCur(a)));
   const sp = spentByCat(m); const ecats = cats('exp');
   const lim = sum(ecats, c => limitFor(c.id, m));
   const spLim = sum(ecats.filter(c => limitFor(c.id, m) > 0), c => sp[c.id] || 0);
@@ -399,12 +466,10 @@ function vHome() {
   const recent = mt.sort((a, b) => (b.date + b.u).localeCompare(a.date + a.u)).slice(0, 6);
   const pct = lim ? Math.min(100, spLim / lim * 100) : 0;
   return monthNav() + `
-  <div class="hero"><small>Загальний баланс</small><div class="big">${money(total)}</div>
+  <div class="hero"><small>Загальний баланс${crDebtH ? ' (з урахуванням боргу по кредитках)' : ''}</small><div class="big">${money(total)}</div>
     <div class="hrow"><div><small>Доходи</small><b>+${nf0.format(inc)}</b></div><div><small>Витрати</small><b>−${nf0.format(exp)}</b></div><div><small>Різниця</small><b>${inc - exp < 0 ? '−' : '+'}${nf0.format(Math.abs(inc - exp))}</b></div></div>
   </div>
-  <div class="card"><h3>Рахунки <button class="link" data-act="sub" data-id="accs">Змінити</button></h3>
-    ${as.map(a => `<div class="row">${ic(a.id, esc(a.emoji || '💼'))}<div class="mid"><div>${esc(a.name)}</div></div><div class="amt ${accBalance(a.id) < 0 ? 'bad' : ''}">${money(accBalance(a.id))}</div></div>`).join('')}
-  </div>
+  ${accBlocks(false)}
   <div class="card"><h3>Бюджет місяця <button class="link" data-act="tab" data-id="budget">Відкрити</button></h3>
     ${lim ? `<div style="display:flex;justify-content:space-between"><span>${money0(spLim)} з ${money0(lim)}</span><span class="muted">${Math.round(spLim / lim * 100)}%</span></div>
     <div class="bar"><i class="${spLim > lim ? 'over' : pct > 85 ? 'warn' : ''}" style="width:${pct}%"></i></div>
@@ -427,7 +492,7 @@ function vOps() {
     (!q || (t.note || '').toLowerCase().includes(q) || catOf(t.cat).name.toLowerCase().includes(q) || String(t.amount).includes(q)));
   items.sort((a, b) => (b.date + b.u).localeCompare(a.date + a.u));
   const groups = {}; items.forEach(t => (groups[t.date] = groups[t.date] || []).push(t));
-  const inc = sum(items.filter(t => t.type === 'inc'), t => t.amount), exp = sum(items.filter(t => t.type === 'exp'), t => t.amount);
+  const inc = sum(items.filter(t => t.type === 'inc'), tBase), exp = sum(items.filter(t => t.type === 'exp'), tBase);
   return monthNav() + `
   <div class="filters">
     <input id="fq" placeholder="🔍 Пошук" value="${esc(f.q)}" data-filter="q">
@@ -437,7 +502,7 @@ function vOps() {
   </div>
   <div class="muted" style="font-size:13px;margin:0 4px">${items.length} операцій · <span class="inc">${money0(inc)}</span> · <span class="exp">−${nf0.format(exp)} ${cur()}</span></div>
   ${Object.keys(groups).length ? Object.entries(groups).map(([d, ts]) => {
-    const dsum = sum(ts.filter(t => t.type === 'exp'), t => t.amount);
+    const dsum = sum(ts.filter(t => t.type === 'exp'), tBase);
     return `<div class="day"><span>${dayLabel(d)}</span><span>${dsum ? '−' + nf.format(dsum) + ' ' + cur() : ''}</span></div><div class="card" style="padding:4px 14px">${ts.map(txRow).join('')}</div>`;
   }).join('') : '<div class="card empty">Немає операцій за цей місяць</div>'}`;
 }
@@ -447,7 +512,7 @@ function vBudget() {
   const m = UI.month, sp = spentByCat(m), ec = cats('exp');
   const rows = ec.map(c => ({ c, l: limitFor(c.id, m), s: sp[c.id] || 0 }));
   const L = sum(rows, r => r.l), S = sum(rows, r => r.s);
-  const inc = sum(monthTx(m).filter(t => t.type === 'inc'), t => t.amount);
+  const inc = sum(monthTx(m).filter(t => t.type === 'inc'), tBase);
   const isCur = m === curMonth(); const dim = daysInMonth(m); const day = isCur ? new Date().getDate() : dim;
   const daysLeft = isCur ? dim - day + 1 : 0;
   return monthNav() + `
@@ -495,11 +560,11 @@ function vStats() {
   let parts = Object.entries(sp).map(([id, v]) => ({ id, v, c: catOf(id) })).sort((a, b) => b.v - a.v);
   if (parts.length > 9) { const rest = parts.slice(8); parts = parts.slice(0, 8).concat([{ id: '_rest', v: sum(rest, r => r.v), c: { emoji: '…', name: 'Решта' } }]); }
   parts.forEach((p, i) => p.color = PAL[i % PAL.length]);
-  const months = []; for (let k = 11; k >= 0; k--) { const mm = addMonth(m, -k); const t = monthTx(mm); months.push({ m: mm, inc: sum(t.filter(x => x.type === 'inc'), x => x.amount), exp: sum(t.filter(x => x.type === 'exp'), x => x.amount) }); }
-  const inc = sum(mt.filter(t => t.type === 'inc'), t => t.amount);
+  const months = []; for (let k = 11; k >= 0; k--) { const mm = addMonth(m, -k); const t = monthTx(mm); months.push({ m: mm, inc: sum(t.filter(x => x.type === 'inc'), tBase), exp: sum(t.filter(x => x.type === 'exp'), tBase) }); }
+  const inc = sum(mt.filter(t => t.type === 'inc'), tBase);
   const prev = months[10];
   const dim = m === curMonth() ? new Date().getDate() : daysInMonth(m);
-  const byWho = members().map(p => ({ p, v: sum(mt.filter(t => t.type === 'exp' && t.who === p.id), t => t.amount) })).filter(x => x.v > 0);
+  const byWho = members().map(p => ({ p, v: sum(mt.filter(t => t.type === 'exp' && t.who === p.id), tBase) })).filter(x => x.v > 0);
   const maxWho = Math.max(1, ...byWho.map(x => x.v));
   const active = months.filter(x => x.inc || x.exp);
   const avgExp = active.length ? sum(active, x => x.exp) / active.length : 0;
@@ -597,9 +662,8 @@ function vRecs() {
   ${rs.length ? `<p class="hint" style="margin:0 4px">Разом на місяць: <b>${money0(sum(rs, r => r.amount))}</b></p>` : ''}`;
 }
 function vAccs() {
-  return back('Рахунки') + `<button class="btn sm" data-act="editAcc">+ Рахунок</button></div>
-  <div class="card" style="padding:4px 14px">${accs().map(a => `<div class="row tap" data-act="editAcc" data-id="${a.id}">${ic(a.id, esc(a.emoji || '💼'))}<div class="mid"><div>${esc(a.name)}</div><small>Початковий залишок ${money(+a.init || 0)}</small></div><div class="amt">${money(accBalance(a.id))}</div></div>`).join('')}</div>
-  <p class="hint" style="margin:0 4px">Щоб перенести гроші між рахунками (зняти готівку, поповнити картку), додайте операцію типу «Переказ».</p>`;
+  return back('Рахунки') + `</div>` + accBlocks(true) +
+  `<p class="hint" style="margin:0 4px">Зняти готівку, поповнити картку, відкласти в збереження чи погасити кредитку — це операція «Переказ» між рахунками (не рахується витратою).</p>`;
 }
 function vCats() {
   const sec = (k, t) => `<div class="day"><span>${t}</span></div><div class="card" style="padding:4px 14px">${cats(k).map(c => `<div class="row tap" data-act="editCat" data-id="${c.id}">${ic(c.id, c.emoji)}<div class="mid"><div>${esc(c.name)}</div></div><div class="amt muted" style="font-weight:400">${k === 'exp' && c.limit ? 'ліміт ' + money0(c.limit) : ''} ›</div></div>`).join('')}</div>`;
@@ -617,13 +681,14 @@ const chipsHtml = (name, items, sel) => `<div class="chips">${items.map(i => `<l
 const fval = (form, n) => { const el = form.elements[n]; if (!el) return ''; if (el instanceof RadioNodeList) return el.value; if (el.type === 'radio') return el.checked ? el.value : ''; return el.type === 'checkbox' ? el.checked : el.value; };
 function amtField(name, v, big) { return `<input class="in ${big ? 'big' : ''}" name="${name}" inputmode="decimal" autocomplete="off" placeholder="0" value="${v != null && v !== '' ? esc(v) : ''}">`; }
 
+const accItems = () => accs().map(a => ({ id: a.id, emoji: a.emoji, name: a.name + (accCur(a) !== 'UAH' ? ' ' + CURS[accCur(a)] : '') }));
 let lastTx = JSON.parse(localStorage.getItem('fb_last') || '{}');
 function txForm(id, preset) {
   const t = id ? get('tx', id) : null;
   const st = t ? { ...t } : { type: 'exp', date: UI.month === curMonth() ? todayStr() : UI.month + '-01', acc: lastTx.acc || accs()[0]?.id, who: lastTx.who || members()[0]?.id, ...preset };
   const body = `<form id="txf" autocomplete="off">
     <div class="seg">${[['exp', 'Витрата'], ['inc', 'Дохід'], ['tr', 'Переказ']].map(([k, n]) => `<label><input type="radio" name="type" value="${k}" ${st.type === k ? 'checked' : ''}><span>${n}</span></label>`).join('')}</div>
-    <label class="f">Сума (можна «120+45»)</label>${amtField('amount', st.amount, true)}
+    <label class="f" id="amtl">Сума (можна «120+45»)</label>${amtField('amount', st.amount, true)}
     <div id="txDyn"></div>
     <label class="f">Хто</label>${chipsHtml('who', members(), st.who)}
     <label class="f">Дата</label><input class="in" type="date" name="date" value="${esc(st.date)}" required>
@@ -635,19 +700,36 @@ function txForm(id, preset) {
     const dyn = () => {
       const type = fval(f, 'type'); const keep = { cat: fval(f, 'cat') || st.cat, acc: fval(f, 'acc') || st.acc, acc2: fval(f, 'acc2') || st.acc2 };
       p.querySelector('#txDyn').innerHTML = type === 'tr'
-        ? `<label class="f">Звідки</label>${chipsHtml('acc', accs(), keep.acc)}<label class="f">Куди</label>${chipsHtml('acc2', accs(), keep.acc2 || accs().find(a => a.id !== keep.acc)?.id)}`
-        : `<label class="f">Категорія</label>${chipsHtml('cat', cats(type), cats(type).some(c => c.id === keep.cat) ? keep.cat : (type === 'exp' ? lastTx.catExp : lastTx.catInc))}<label class="f">Рахунок</label>${chipsHtml('acc', accs(), keep.acc)}`;
+        ? `<label class="f">Звідки</label>${chipsHtml('acc', accItems(), keep.acc)}<label class="f">Куди</label>${chipsHtml('acc2', accItems(), keep.acc2 || accs().find(a => a.id !== keep.acc)?.id)}
+          <div id="amt2w" style="display:none"><label class="f" id="amt2l">Зараховано</label>${amtField('amount2', st.amount2 ?? '')}<p class="hint" id="amt2h"></p></div>`
+        : `<label class="f">Категорія</label>${chipsHtml('cat', cats(type), cats(type).some(c => c.id === keep.cat) ? keep.cat : (type === 'exp' ? lastTx.catExp : lastTx.catInc))}<label class="f">Рахунок</label>${chipsHtml('acc', accItems(), keep.acc)}`;
     };
-    dyn();
-    f.querySelectorAll('input[name=type]').forEach(r => r.addEventListener('change', dyn));
+    const upd = () => {
+      const type = fval(f, 'type'); const a = get('acc', fval(f, 'acc')); const c = accCur(a);
+      p.querySelector('#amtl').textContent = `Сума${c !== 'UAH' ? ', ' + CURS[c] : ''} (можна «120+45»)`;
+      const w = p.querySelector('#amt2w'); if (!w) return;
+      const b = get('acc', fval(f, 'acc2')); const c2 = accCur(b); const diff = type === 'tr' && a && b && c !== c2;
+      w.style.display = diff ? '' : 'none';
+      if (diff) {
+        p.querySelector('#amt2l').textContent = `Зараховано на «${b.name}», ${CURS[c2]}`;
+        const v = parseAmt(fval(f, 'amount'));
+        p.querySelector('#amt2h').textContent = v > 0 ? `За курсом ≈ ${nf.format(Math.round(toBase(v, c) / rateOf(c2) * 100) / 100)} ${CURS[c2]}. Залиште порожнім, щоб порахувати за курсом.` : '';
+      }
+    };
+    dyn(); upd();
+    f.querySelectorAll('input[name=type]').forEach(r => r.addEventListener('change', () => { dyn(); upd(); }));
+    p.querySelector('#txDyn').addEventListener('change', upd);
+    f.elements.amount.addEventListener('input', upd);
     if (!t) setTimeout(() => f.elements.amount.focus(), 250);
     f.onsubmit = e => {
       e.preventDefault();
       const type = fval(f, 'type'), amount = parseAmt(fval(f, 'amount'));
       if (!(amount > 0)) return toast('Введіть суму');
       const rec = { ...(t || {}), id: t?.id, type, amount, date: fval(f, 'date'), note: fval(f, 'note').trim(), who: fval(f, 'who'), acc: fval(f, 'acc') };
-      if (type === 'tr') { rec.acc2 = fval(f, 'acc2'); delete rec.cat; if (!rec.acc || !rec.acc2 || rec.acc === rec.acc2) return toast('Оберіть два різні рахунки'); }
-      else { rec.cat = fval(f, 'cat'); delete rec.acc2; if (!rec.cat) return toast('Оберіть категорію'); if (!rec.acc) return toast('Оберіть рахунок'); }
+      if (type === 'tr') { rec.acc2 = fval(f, 'acc2'); delete rec.cat; if (!rec.acc || !rec.acc2 || rec.acc === rec.acc2) return toast('Оберіть два різні рахунки');
+        const c1 = accCur(get('acc', rec.acc)), c2 = accCur(get('acc', rec.acc2));
+        if (c1 !== c2) { let a2 = parseAmt(fval(f, 'amount2')); if (!(a2 > 0)) a2 = Math.round(toBase(amount, c1) / rateOf(c2) * 100) / 100; rec.amount2 = a2; } else delete rec.amount2; }
+      else { rec.cat = fval(f, 'cat'); delete rec.acc2; delete rec.amount2; if (!rec.cat) return toast('Оберіть категорію'); if (!rec.acc) return toast('Оберіть рахунок'); }
       put('tx', rec);
       lastTx = { ...lastTx, acc: rec.acc, who: rec.who, [type === 'inc' ? 'catInc' : 'catExp']: rec.cat || lastTx.catExp };
       localStorage.setItem('fb_last', JSON.stringify(lastTx));
@@ -763,15 +845,40 @@ function payRec(id) {
   render(); toast(`«${r.name}» — сплачено ✓`);
 }
 
-function accForm(id) {
-  const a = id ? get('acc', id) : null;
-  openSheet(a ? 'Рахунок' : 'Новий рахунок', `<form id="af">
-    <label class="f">Назва</label><div style="display:flex;gap:8px"><input class="in" name="emoji" value="${esc(a?.emoji || '💳')}" style="width:64px;text-align:center"><input class="in" name="name" value="${esc(a?.name || '')}" placeholder="Моно, Приват, готівка, конверт…" required></div>
-    <label class="f">Початковий залишок (скільки було на момент початку обліку)</label>${amtField('init', a?.init ?? '')}
+function accForm(id, kind0) {
+  const a = id ? get('acc', id) : null; const kind = a ? akind(a) : (kind0 || 'reg');
+  const ttl = { reg: 'рахунок', save: 'збереження', credit: 'кредитка' };
+  const emo = { reg: '👛', save: '🏦', credit: '💳' };
+  const initShown = a ? (kind === 'credit' ? Math.max(0, -(Number(a.init) || 0)) : a.init) : '';
+  openSheet(a ? 'Редагувати' : 'Новий рахунок', `<form id="af">
+    <div class="seg">${[['reg', 'Рахунок'], ['save', 'Збереження'], ['credit', 'Кредитка']].map(([k, n]) => `<label><input type="radio" name="kind" value="${k}" ${kind === k ? 'checked' : ''}><span>${n}</span></label>`).join('')}</div>
+    <label class="f">Назва</label><div style="display:flex;gap:8px"><input class="in" name="emoji" value="${esc(a?.emoji || emo[kind])}" style="width:64px;text-align:center"><input class="in" name="name" value="${esc(a?.name || '')}" required></div>
+    <label class="f">Валюта</label><select class="in" name="cur">${Object.keys(CURS).map(c => `<option value="${c}" ${accCur(a) === c ? 'selected' : ''}>${CURS[c]} ${CUR_NAMES[c]} (${c})</option>`).join('')}</select>
+    <div id="crf"><label class="f">Кредитний ліміт</label>${amtField('limit', a?.limit || '')}
+      <label class="f">День щомісячного платежу (необовʼязково)</label><input class="in" type="number" name="payDay" min="1" max="31" value="${esc(a?.payDay || '')}"></div>
+    <label class="f" id="initL"></label>${amtField('init', initShown)}
+    <p class="hint" id="accH"></p>
     <div class="btns">${a ? `<button type="button" class="btn danger" data-act="delAcc" data-id="${a.id}">Видалити</button>` : ''}<button class="btn" type="submit">Зберегти</button></div></form>`, p => {
     const f = p.querySelector('#af');
-    f.onsubmit = e => { e.preventDefault(); const init = fval(f, 'init') === '' ? 0 : parseAmt(fval(f, 'init')); if (isNaN(init)) return toast('Невірна сума');
-      put('acc', { ...(a || { order: accs().length }), name: fval(f, 'name').trim(), emoji: fval(f, 'emoji').trim(), init }); closeSheet(); render(); };
+    const upd = () => {
+      const k = fval(f, 'kind');
+      p.querySelector('#crf').style.display = k === 'credit' ? '' : 'none';
+      p.querySelector('#initL').textContent = k === 'credit' ? 'Поточний борг по картці (на день початку обліку)' : 'Початковий залишок (скільки є зараз)';
+      f.elements.name.placeholder = { reg: 'Моно, Приват, готівка…', save: 'Долари вдома, депозит, конверт…', credit: 'Моно кредитка, ПриватБанк Універсальна…' }[k];
+      p.querySelector('#accH').textContent = k === 'credit' ? 'Покупки з кредитки — це звичайні витрати з цього рахунку. Погашення — «Переказ» з вашої картки на кредитку.'
+        : k === 'save' ? 'Поповнення збережень — «Переказ» з картки сюди. Якщо валюта інша, при переказі вкажете, скільки зараховано.' : '';
+      if (!a) { const e = f.elements.emoji; if (Object.values(emo).includes(e.value)) e.value = emo[k]; }
+    };
+    upd(); f.querySelectorAll('input[name=kind]').forEach(r => r.addEventListener('change', upd));
+    f.onsubmit = e => {
+      e.preventDefault(); const k = fval(f, 'kind');
+      let init = fval(f, 'init') === '' ? 0 : parseAmt(fval(f, 'init')); if (isNaN(init)) return toast('Невірна сума');
+      if (k === 'credit') init = -Math.abs(init);
+      const rec = { ...(a || { order: accs().length }), kind: k, cur: fval(f, 'cur'), name: fval(f, 'name').trim(), emoji: fval(f, 'emoji').trim(), init };
+      if (k === 'credit') { rec.limit = parseAmt(fval(f, 'limit')) || 0; rec.payDay = Math.min(31, Math.max(0, parseInt(fval(f, 'payDay')) || 0)) || ''; } else { delete rec.limit; delete rec.payDay; }
+      put('acc', rec); closeSheet(); render();
+      if (rec.cur !== 'UAH' && !getSetting('rates')?.manual && !RATES_AUTO.t) fetchRates();
+    };
   });
 }
 function catForm(id) {
@@ -808,7 +915,11 @@ function openSettings() {
   <div class="card"><h3>🔒 PIN-код на цьому пристрої</h3>
     <p class="hint" style="margin-top:0">${localStorage.getItem(LS.pin) ? 'PIN встановлено.' : 'Без PIN-коду.'} PIN захищає від випадкового перегляду, зберігається лише на цьому телефоні.</p>
     <div class="btns">${localStorage.getItem(LS.pin) ? '<button class="btn sec sm" data-act="pinOff">Прибрати PIN</button>' : ''}<button class="btn sec sm" data-act="pinSet">${localStorage.getItem(LS.pin) ? 'Змінити PIN' : 'Встановити PIN'}</button></div></div>
-  <div class="card"><h3>💱 Валюта</h3><form id="curf" style="display:flex;gap:8px"><input class="in" name="c" value="${esc(cur())}" style="width:90px"><button class="btn sec" type="submit">OK</button></form></div>
+  <div class="card"><h3>💱 Курс долара</h3>
+    <form id="ratef">${FX.map(c => `<div class="row"><div class="mid">1 ${CURS[c]} ${CUR_NAMES[c]}</div><input class="in" name="${c}" inputmode="decimal" value="${nf.format(rateOf(c)).replace(/\s/g, '')}" style="width:110px;text-align:right"><span class="muted">₴</span></div>`).join('')}
+    <p class="hint">${rates().manual ? 'Задано вручну.' : 'Автоматично' + (rates().date ? ` — ${rates().src || 'НБУ'} на ${rates().date}` : ' (ще не завантажено)')}. Використовується, щоб рахувати збереження й витрати у валюті в гривнях.</p>
+    <div class="btns"><button type="button" class="btn sec sm" data-act="ratesAuto">Оновлювати автоматично (НБУ)</button><button class="btn sm" type="submit">Зберегти вручну</button></div></form></div>
+  <div class="card"><h3>₴ Символ основної валюти</h3><form id="curf" style="display:flex;gap:8px"><input class="in" name="c" value="${esc(cur())}" style="width:90px"><button class="btn sec" type="submit">OK</button></form></div>
   <div class="card"><h3>💾 Резервна копія</h3>
     <div class="btns" style="flex-wrap:wrap"><button class="btn sec sm" data-act="exportJson">Завантажити JSON</button><button class="btn sec sm" data-act="exportCsv">Завантажити CSV (Excel)</button><button class="btn sec sm" data-act="importJson">Імпортувати JSON</button></div>
     <input type="file" id="impFile" accept=".json,application/json" style="display:none">
@@ -822,6 +933,9 @@ function openSettings() {
       SYNC = n; localStorage.setItem(LS.sync, JSON.stringify(SYNC)); closeSheet(); render();
       await syncNow(true);
     };
+    p.querySelector('#ratef').onsubmit = e => { e.preventDefault(); const o = { manual: true };
+      for (const c of FX) { const v = parseAmt(e.target.elements[c].value); if (!(v > 0)) return toast('Невірний курс ' + c); o[c] = v; }
+      setSetting('rates', o); closeSheet(); render(); toast('Курси збережено ✓'); };
     p.querySelector('#curf').onsubmit = e => { e.preventDefault(); setSetting('currency', e.target.elements.c.value.trim() || '₴'); closeSheet(); render(); };
     p.querySelector('#impFile').onchange = e => {
       const file = e.target.files[0]; if (!file) return;
@@ -843,8 +957,8 @@ function download(name, text, type) {
 }
 function exportCsv() {
   const q = v => '"' + String(v ?? '').replace(/"/g, '""') + '"';
-  const rows = [['Дата', 'Тип', 'Сума', 'Категорія', 'Рахунок', 'Рахунок отримувач', 'Хто', 'Коментар']];
-  txs().sort((a, b) => a.date.localeCompare(b.date)).forEach(t => rows.push([t.date, { exp: 'Витрата', inc: 'Дохід', tr: 'Переказ' }[t.type], String(t.amount).replace('.', ','), t.type === 'tr' ? '' : catOf(t.cat).name, accOf(t.acc).name, t.acc2 ? accOf(t.acc2).name : '', memOf(t.who)?.name || '', t.note || '']));
+  const rows = [['Дата', 'Тип', 'Сума', 'Категорія', 'Рахунок', 'Рахунок отримувач', 'Хто', 'Коментар', 'Валюта']];
+  txs().sort((a, b) => a.date.localeCompare(b.date)).forEach(t => rows.push([t.date, { exp: 'Витрата', inc: 'Дохід', tr: 'Переказ' }[t.type], String(t.amount).replace('.', ','), t.type === 'tr' ? '' : catOf(t.cat).name, accOf(t.acc).name, t.acc2 ? accOf(t.acc2).name : '', memOf(t.who)?.name || '', t.note || '', accCur(get('acc', t.acc))]));
   download(`budget-${todayStr()}.csv`, '﻿' + rows.map(r => r.map(q).join(';')).join('\r\n'), 'text/csv;charset=utf-8');
 }
 
@@ -905,6 +1019,8 @@ const ACT = {
   editRec: id => recForm(id), payRec: id => payRec(id),
   delRec: id => { if (confirm('Видалити регулярний платіж?')) { remove('rec', id); closeSheet(); render(); } },
   editAcc: id => accForm(id),
+  newAcc: kind => accForm(null, kind),
+  ratesAuto: () => { setSetting('rates', { manual: false }); closeSheet(); fetchRates(true); render(); },
   delAcc: id => { const n = txs().filter(t => t.acc === id || t.acc2 === id).length; if (confirm(n ? `На рахунку є ${n} операцій — вони залишаться, але без рахунку. Видалити?` : 'Видалити рахунок?')) { remove('acc', id); closeSheet(); render(); } },
   editCat: id => catForm(id),
   delCat: id => { const n = txs().filter(t => t.cat === id).length; if (confirm(n ? `У категорії ${n} операцій — вони стануть «Без категорії». Видалити?` : 'Видалити категорію?')) { remove('cat', id); closeSheet(); render(); } },
@@ -932,11 +1048,13 @@ document.addEventListener('input', e => { if (e.target.dataset?.filter === 'q') 
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSheet(); });
 
 /* ============ start ============ */
+{ const sd = seed(); let added = false; for (const c of COLS) for (const id in sd.col[c]) if (!DB.col[c][id]) { DB.col[c][id] = sd.col[c][id]; added = true; } if (added) saveLocal(); }
 if (UI.tab === 'more' && !UI.sub) UI.sub = 'menu';
 saveLocal(); render();
 setSyncUI(SYNC.token ? (localStorage.getItem(LS.dirty) ? 'pending' : 'ok') : 'off');
 if (localStorage.getItem(LS.pin)) { rebuildPad(); showLock('check'); }
 if (SYNC.token) syncNow();
+if (Date.now() - (RATES_AUTO.t || 0) > 6 * 3600e3) fetchRates();
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
 </script>
 </body>
