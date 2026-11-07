@@ -648,6 +648,9 @@ function vHome() {
   const recent = mt.sort((a, b) => (b.date + b.u).localeCompare(a.date + a.u)).slice(0, 6);
   const pct = lim ? Math.min(100, spLim / lim * 100) : 0;
   return monthNav() + `
+  ${!SYNC.token ? `<div class="card" style="border:1px solid var(--accent)"><h3>☁️ Дані не синхронізуються</h3>
+    <p class="hint" style="margin-top:0">Цей застосунок ще не підключений до вашого репозиторію, тому тут порожньо. На iPhone застосунок на головному екрані має окреме сховище — його треба підключити один раз.</p>
+    <button class="btn block" data-act="settings">Підключити синхронізацію</button></div>` : ''}
   ${heroCards(inc, exp)}
   ${homeBody({ earn: earnCard(), fx: fxCard(), reg: accCard('reg'), credit: accCard('credit'), save: accCard('save'),
     budget: `<div class="card"><h3>Бюджет місяця <button class="link" data-act="tab" data-id="budget">Відкрити</button></h3>
