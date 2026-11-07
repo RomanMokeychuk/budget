@@ -113,9 +113,15 @@ def upcoming(d, today):
         paid = sum((num(t.get('amount2')) if t.get('type') == 'tr' and t.get('amount2') not in (None, '') else num(t.get('amount')))
                    for t in tx if str(t.get('date', '')).startswith(ym) and
                    ((t.get('type') == 'tr' and t.get('acc2') == a['id']) or (t.get('type') == 'inc' and t.get('acc') == a['id'])))
-        left = 0.0 if a.get('minPaid') == ym else max(0.0, round(min_pay(a, debt + paid) - paid, 2))
+        bank = a.get('bank') if isinstance(a.get('bank'), dict) and a['bank'].get('ym') == ym else None
+        mn = num(bank['min']) if bank and bank.get('min') not in (None, '') else min_pay(a, debt + paid)
+        left = 0.0 if a.get('minPaid') == ym else max(0.0, round(mn - paid, 2))
+        grace = max(0.0, round(num(bank['grace']) - paid, 2)) if bank and bank.get('grace') not in (None, '') else None
         rate = num(a.get('rate'))
-        extra = f'повний борг {money(debt, cur)}' + (f', ~{money(debt * rate / 100, cur)} відсотків/міс' if rate and debt else '')
+        if grace is not None:
+            extra = f'💚 без відсотків, якщо внести {money(grace, cur)}'
+        else:
+            extra = f'повний борг {money(debt, cur)}' + (f', ~{money(debt * rate / 100, cur)} відсотків/міс' if rate and debt else '')
         if left > 0:
             out.append(('💳', a.get('name', 'Кредитка'), left, cur, due_in(today.year, today.month, a.get('payDay')), 'мінімальний платіж; ' + extra))
         elif debt > 0:

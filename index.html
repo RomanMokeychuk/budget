@@ -472,15 +472,18 @@ function creditInfo(a, ref = new Date()) {
   const debt = Math.max(0, -accBalance(a.id)), ym = ymOf(ref);
   const paid = sum(txs().filter(t => t.date && t.date.startsWith(ym) && ((t.type === 'tr' && t.acc2 === a.id) || (t.type === 'inc' && t.acc === a.id))),
     t => (t.type === 'tr' && t.amount2 != null && t.amount2 !== '') ? Number(t.amount2) : Number(t.amount));
-  const min = minPay(a, debt + paid), minLeft = a.minPaid === ym ? 0 : Math.max(0, Math.round((min - paid) * 100) / 100);
+  const bank = a.bank && a.bank.ym === ym ? a.bank : null;
+  const min = bank && bank.min !== '' && bank.min != null ? Number(bank.min) : minPay(a, debt + paid);
+  const minLeft = a.minPaid === ym ? 0 : Math.max(0, Math.round((min - paid) * 100) / 100);
+  const grace = bank && bank.grace ? Math.max(0, Math.round((Number(bank.grace) - paid) * 100) / 100) : null;
   const due = dueIn(ym, Number(a.payDay) || 0), nextDue = dueIn(ymOf(new Date(ref.getFullYear(), ref.getMonth() + 1, 1)), Number(a.payDay) || 0);
-  return { debt, paid, min, minLeft, due, nextDue, nextMin: minPay(a, debt), interest: debt * (Number(a.rate) || 0) / 100 };
+  return { debt, paid, min, minLeft, due, nextDue, nextMin: minPay(a, debt), grace, inGrace: grace != null, interest: grace != null ? 0 : debt * (Number(a.rate) || 0) / 100 };
 }
 function upcoming() {
   const now = new Date(), ym = ymOf(now), out = [];
   for (const a of accs().filter(a => akind(a) === 'credit')) {
     const ci = creditInfo(a, now); const c = accCur(a);
-    const extra = `повний борг ${moneyC(ci.debt, c)}${ci.interest ? ` · ~${moneyC(ci.interest, c)} відсотків/міс` : ''}`;
+    const extra = ci.inGrace ? `💚 без відсотків, якщо внести ${moneyC(ci.grace, c)}` : `повний борг ${moneyC(ci.debt, c)}${ci.interest ? ` · ~${moneyC(ci.interest, c)} відсотків/міс` : ''}`;
     if (ci.minLeft > 0) out.push({ ic: ic(a.id, esc(a.emoji || '💳')), name: a.name, amount: ci.minLeft, cur: c, due: ci.due, sub: 'мінімальний платіж · ' + extra, act: 'payCredit', id: a.id });
     else if (ci.debt > 0) out.push({ ic: ic(a.id, esc(a.emoji || '💳')), name: a.name, amount: ci.nextMin, cur: c, due: ci.nextDue, sub: 'мінімальний цього місяця внесено ✓ · ' + extra, act: 'payCredit', id: a.id, later: true });
   }
@@ -517,6 +520,7 @@ function accRow(a, tap) {
       ${debt ? (() => { const ci = creditInfo(a); return `<br><small>${ci.minLeft > 0
         ? `Обовʼязковий платіж: <b class="exp">${moneyC(ci.minLeft, c)}</b> до ${ci.due.toLocaleDateString('uk-UA', { day: 'numeric', month: 'long' })}`
         : `✓ За ${ci.due.toLocaleDateString('uk-UA', { month: 'long' })} внесено<br>Наступний обовʼязковий: <b>${moneyC(ci.nextMin, c)}</b> до ${ci.nextDue.toLocaleDateString('uk-UA', { day: 'numeric', month: 'long' })}`}
+        ${ci.inGrace ? `<br>💚 Пільговий період: внесіть <b>${moneyC(ci.grace, c)}</b> до ${ci.due.toLocaleDateString('uk-UA', { day: 'numeric', month: 'long' })} — без відсотків` : ''}
         ${ci.interest ? `<br>Відсотки ~${moneyC(ci.interest, c)}/міс` : ''}</small>`; })() : ''}
       ${lim ? `<div class="bar"><i class="${p > .85 ? 'over' : p > .5 ? 'warn' : ''}" style="width:${Math.min(100, p * 100)}%"></i></div>` : ''}</div>
       <div class="amt ${debt ? 'exp' : 'inc'}">${debt ? '−' + moneyC(debt, c) : moneyC(0, c)}<br><small class="muted" style="font-weight:400;font-size:11px">${debt ? 'борг' : 'без боргу'}</small></div></div>`;
@@ -1066,7 +1070,11 @@ function accForm(id, kind0) {
       <div style="display:flex;gap:8px"><div style="flex:1"><label class="f">Мін. платіж, % від боргу</label><input class="in" name="minPct" inputmode="decimal" value="${esc(a?.minPct ?? 5)}"></div>
       <div style="flex:1"><label class="f">Але не менше, ₴</label><input class="in" name="minFloor" inputmode="decimal" value="${esc(a?.minFloor ?? '')}" placeholder="0"></div></div>
       <label class="f">Відсоткова ставка, % на місяць (якщо поза пільговим періодом)</label><input class="in" name="rate" inputmode="decimal" value="${esc(a?.rate ?? '')}" placeholder="напр. 3,1">
-      <p class="hint">Умови дивіться в застосунку банку: «Деталі кредиту». Якщо мінімальний платіж відрізняється — підправте відсоток.</p></div>
+      <div class="card" style="margin:12px 0 0;padding:12px"><b style="font-size:14px">Цифри з банку на ${monthName(ymOf(new Date()))}</b>
+        <p class="hint" style="margin-top:4px">Перепишіть з застосунку банку — тоді суми будуть точними. Наступного місяця поля очистяться самі.</p>
+        <div style="display:flex;gap:8px"><div style="flex:1"><label class="f">Мінімальний платіж</label><input class="in" name="bankMin" inputmode="decimal" value="${esc(a?.bank?.ym === ymOf(new Date()) ? (a.bank.min ?? '') : '')}" placeholder="авто"></div>
+        <div style="flex:1"><label class="f">Сума для пільгового періоду</label><input class="in" name="bankGrace" inputmode="decimal" value="${esc(a?.bank?.ym === ymOf(new Date()) ? (a.bank.grace ?? '') : '')}" placeholder="—"></div></div></div>
+      <p class="hint">Умови — в застосунку банку («Деталі»). Якщо мінімальний платіж відрізняється — підправте відсоток.</p></div>
     <label class="f" id="initL"></label>${amtField('init', initShown)}
     <p class="hint" id="accH"></p>
     <div class="btns">${a ? `<button type="button" class="btn danger" data-act="delAcc" data-id="${a.id}">Видалити</button>` : ''}<button class="btn" type="submit">Зберегти</button></div></form>`, p => {
@@ -1087,7 +1095,9 @@ function accForm(id, kind0) {
       if (k === 'credit') init = -Math.abs(init);
       const rec = { ...(a || { order: accs().length }), kind: k, cur: fval(f, 'cur'), name: fval(f, 'name').trim(), emoji: fval(f, 'emoji').trim(), init };
       if (k === 'credit') { rec.limit = parseAmt(fval(f, 'limit')) || 0; rec.payDay = Math.min(31, Math.max(0, parseInt(fval(f, 'payDay')) || 0)) || '';
-        const n = v => { const x = parseAmt(v); return isNaN(x) ? '' : x; }; rec.minPct = n(fval(f, 'minPct')); rec.minFloor = n(fval(f, 'minFloor')); rec.rate = n(fval(f, 'rate')); }
+        const n = v => { const x = parseAmt(v); return isNaN(x) ? '' : x; }; rec.minPct = n(fval(f, 'minPct')); rec.minFloor = n(fval(f, 'minFloor')); rec.rate = n(fval(f, 'rate'));
+        const bm = n(fval(f, 'bankMin')), bg = n(fval(f, 'bankGrace'));
+        if (bm !== '' || bg !== '') { rec.bank = { ym: ymOf(new Date()), min: bm, grace: bg }; if (bm !== '' && rec.minPaid === ymOf(new Date())) delete rec.minPaid; } else delete rec.bank; }
       else { delete rec.limit; delete rec.payDay; delete rec.minPct; delete rec.minFloor; delete rec.rate; }
       put('acc', rec); closeSheet(); render();
       if (rec.cur !== 'UAH' && !getSetting('rates')?.manual && !RATES_AUTO.t) fetchRates();
