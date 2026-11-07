@@ -54,6 +54,13 @@ header.top h1{font-size:20px;margin:0;font-weight:700;letter-spacing:-.01em}
 .fxg div{background:var(--chip);border-radius:12px;padding:8px 10px;display:flex;flex-direction:column;gap:1px}
 .fxg small{color:var(--muted);font-size:11px}
 .fxg b{font-size:16px;white-space:nowrap}
+.cal{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+.cal i{font-style:normal;text-align:center;font-size:11px;color:var(--muted);padding-bottom:2px}
+.cd{border:0;background:var(--chip);border-radius:10px;min-height:48px;padding:4px 2px;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:2px;color:var(--text)}
+.cd span{font-size:12px;color:var(--muted)}
+.cd b{font-size:11px;color:var(--inc);font-weight:700}
+.cd.has{background:rgba(16,185,129,.16)}
+.cd.today{outline:2px solid var(--accent)}
 .stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
 .stat{background:var(--card);border-radius:16px;padding:11px;box-shadow:var(--shadow);border:1px solid var(--border)}
 .stat small{display:block;color:var(--muted);font-size:12px}
@@ -268,7 +275,7 @@ function seed() {
    ['c_subs','📱','Звʼязок, підписки'],['c_house','🧴','Дім, побут'],['c_fun','🎉','Розваги'],['c_gift','🎁','Подарунки'],
    ['c_edu','📚','Навчання'],['c_debt','💳','Борги, кредити'],['c_fee','🏦','Відсотки, комісії'],['c_other','📦','Інше']]
     .forEach(([id, emoji, name], i) => add('cat', { id, emoji, name, kind: 'exp', order: i, limit: 0 }));
-  [['ci_salary','💰','Зарплата'],['ci_side','💵','Підробіток'],['ci_gift','🎁','Подарунки'],['ci_debt','🤝','Повернення боргу'],['ci_other','🔄','Інше']]
+  [['ci_salary','💰','Зарплата'],['ci_tips','🫖','Чайові'],['ci_side','💵','Підробіток'],['ci_gift','🎁','Подарунки'],['ci_debt','🤝','Повернення боргу'],['ci_other','🔄','Інше']]
     .forEach(([id, emoji, name], i) => add('cat', { id, emoji, name, kind: 'inc', order: 100 + i }));
   add('acc', { id: 'a_card', emoji: '💳', name: 'Картка', init: 0, order: 0 });
   add('acc', { id: 'a_cash', emoji: '💵', name: 'Готівка', init: 0, order: 1 });
@@ -484,13 +491,13 @@ function accCard(kind, tap) {
 const accBlocks = tap => ['reg', 'save', 'credit'].map(k => accCard(k, tap)).join('');
 
 /* ---------- Home layout ---------- */
-const HOME_BLOCKS = [['fx', '💵 Курс долара'], ['reg', '👛 Рахунки'], ['credit', '💳 Кредитки'], ['save', '🏦 Збереження'],
+const HOME_BLOCKS = [['earn', '🫖 Заробіток (зміни)'], ['fx', '💵 Курс долара'], ['reg', '👛 Рахунки'], ['credit', '💳 Кредитки'], ['save', '🏦 Збереження'],
   ['budget', '🎯 Бюджет місяця'], ['recs', '🔁 Платежі до сплати'], ['recent', '📋 Останні операції']];
 function homeCfg() {
   let c = {}; try { c = JSON.parse(localStorage.getItem('fb_home')) || {}; } catch (e) {}
   const all = HOME_BLOCKS.map(b => b[0]);
   const order = (c.order || []).filter(k => all.includes(k)); all.forEach(k => { if (!order.includes(k)) order.push(k); });
-  return { order, hidden: c.hidden || { save: true } };
+  return { order, hidden: c.hidden || { save: true, earn: !(myId() && myId() !== 'm_1') } };
 }
 const saveHomeCfg = c => localStorage.setItem('fb_home', JSON.stringify(c));
 function homeSettings() {
@@ -523,7 +530,7 @@ function vHome() {
   <div class="hero"><small>Баланс рахунків${crDebtH ? ' (мінус борг по кредитках)' : ''}</small><div class="big">${money(total)}</div>
     <div class="hrow"><div><small>Доходи</small><b>${inc ? '+' : ''}${nf0.format(inc)}</b></div><div><small>Витрати</small><b>${exp ? '−' : ''}${nf0.format(exp)}</b></div><div><small>Різниця</small><b>${inc - exp < 0 ? '−' : inc - exp > 0 ? '+' : ''}${nf0.format(Math.abs(inc - exp))}</b></div></div>
   </div>
-  ${homeBody({ fx: fxCard(), reg: accCard('reg'), credit: accCard('credit'), save: accCard('save'),
+  ${homeBody({ earn: earnCard(), fx: fxCard(), reg: accCard('reg'), credit: accCard('credit'), save: accCard('save'),
     budget: `<div class="card"><h3>Бюджет місяця <button class="link" data-act="tab" data-id="budget">Відкрити</button></h3>
     ${lim ? `<div style="display:flex;justify-content:space-between"><span>${money0(spLim)} з ${money0(lim)}</span><span class="muted">${Math.round(spLim / lim * 100)}%</span></div>
     <div class="bar"><i class="${spLim > lim ? 'over' : pct > 85 ? 'warn' : ''}" style="width:${pct}%"></i></div>
@@ -537,6 +544,83 @@ function vHome() {
     ${recent.length ? recent.map(txRow).join('') : '<div class="empty">Поки порожньо. Натисніть «+», щоб додати першу операцію.</div>'}
   </div>` })}
   <button class="btn sec block" data-act="homeSettings" style="margin-top:4px">⚙️ Налаштувати головну</button>`;
+}
+
+/* ---------- Earnings (shifts, tips) ---------- */
+const earnWho = () => UI.earnWho && get('member', UI.earnWho) ? UI.earnWho : (myId() || members().find(m => m.id === 'm_2')?.id || members()[0]?.id);
+function earnStats(m, who) {
+  const t = monthTx(m).filter(x => x.type === 'inc' && x.who === who);
+  const byDay = {};
+  for (const x of t) { const d = byDay[x.date] = byDay[x.date] || { tips: 0, wage: 0, other: 0 }; const v = tBase(x);
+    if (x.cat === 'ci_tips') d.tips += v; else if (x.cat === 'ci_salary') d.wage += v; else d.other += v; }
+  const days = Object.entries(byDay).map(([date, d]) => ({ date, ...d, total: d.tips + d.wage + d.other }));
+  const shifts = days.filter(d => d.tips || d.wage);
+  const tips = sum(days, d => d.tips), wage = sum(days, d => d.wage), other = sum(days, d => d.other);
+  const best = shifts.slice().sort((a, b) => b.tips - a.tips)[0];
+  return { byDay, days, shifts, tips, wage, other, total: tips + wage + other, avgTips: shifts.length ? tips / shifts.length : 0, best };
+}
+function earnCard() {
+  const who = earnWho(), m = UI.month, st = earnStats(m, who), name = memOf(who)?.name || '';
+  return `<div class="card"><h3><span>🫖 Заробіток · ${esc(name)}</span><button class="link" data-act="sub" data-id="earn">Календар</button></h3>
+    <div class="fxg"><div><small>Чайові</small><b>${money0(st.tips)}</b></div><div><small>Зарплата</small><b>${money0(st.wage)}</b></div><div><small>Разом</small><b class="inc">${money0(st.total)}</b></div></div>
+    <p class="hint">${st.shifts.length ? `Змін: ${st.shifts.length} · у середньому ${money0(st.avgTips)} чайових за зміну` : 'Ще немає змін цього місяця'}</p>
+    <div class="btns" style="margin-top:8px"><button class="btn block" data-act="shift" data-id="${todayStr()}">＋ Записати зміну за сьогодні</button></div></div>`;
+}
+function vEarn() {
+  const who = earnWho(), m = UI.month, st = earnStats(m, who);
+  const [Y, M] = m.split('-').map(Number); const first = (new Date(Y, M - 1, 1).getDay() + 6) % 7; const dim = daysInMonth(m); const today = todayStr();
+  const k = v => v >= 10000 ? nf0.format(Math.round(v / 1000)) + 'к' : nf0.format(v);
+  let cells = '';
+  for (let i = 0; i < first; i++) cells += '<div></div>';
+  for (let d = 1; d <= dim; d++) {
+    const ds = `${m}-${pad2(d)}`, x = st.byDay[ds];
+    cells += `<button class="cd ${x ? 'has' : ''} ${ds === today ? 'today' : ''}" data-act="shift" data-id="${ds}"><span>${d}</span>${x ? `<b>${k(x.tips + x.wage + x.other)}</b>` : ''}</button>`;
+  }
+  const list = st.days.sort((a, b) => b.date.localeCompare(a.date));
+  return back('Заробіток') + `</div>
+  <div class="chips" style="margin-bottom:10px">${members().map(p => `<label><input type="radio" name="ew" ${p.id === who ? 'checked' : ''} data-act="earnWho" data-id="${p.id}"><span>${esc(p.name)}</span></label>`).join('')}</div>
+  ${monthNav()}
+  <div class="card"><div class="fxg"><div><small>Чайові</small><b>${money0(st.tips)}</b></div><div><small>Зарплата</small><b>${money0(st.wage)}</b></div><div><small>Разом</small><b class="inc">${money0(st.total)}</b></div></div>
+    <p class="hint">${st.shifts.length ? `Змін: <b>${st.shifts.length}</b> · середні чайові <b>${money0(st.avgTips)}</b>/зміну${st.best && st.best.tips ? ` · найкраща зміна ${new Date(st.best.date).toLocaleDateString('uk-UA', { day: 'numeric', month: 'long' })}: <b>${money0(st.best.tips)}</b>` : ''}${st.other ? ` · інші доходи ${money0(st.other)}` : ''}` : 'Натисніть на день у календарі, щоб записати зміну.'}</p></div>
+  <div class="card"><div class="cal">${['Пн', 'Вт', 'Ср', 'Чт', 'Пт', 'Сб', 'Нд'].map(w => `<i>${w}</i>`).join('')}${cells}</div></div>
+  ${list.length ? `<div class="card" style="padding:4px 14px">${list.map(d => `<div class="row tap" data-act="shift" data-id="${d.date}"><div class="ic" style="background:#F59E0B26">🫖</div>
+    <div class="mid"><div>${dayLabel(d.date)}</div><small>${[d.tips ? 'чайові ' + money0(d.tips) : '', d.wage ? 'зарплата ' + money0(d.wage) : '', d.other ? 'інше ' + money0(d.other) : ''].filter(Boolean).join(' · ')}</small></div>
+    <div class="amt inc">+${nf0.format(d.total)} ${cur()}</div></div>`).join('')}</div>` : ''}`;
+}
+function shiftForm(date, who) {
+  who = who || earnWho();
+  const day = txs().filter(t => t.type === 'inc' && t.who === who && t.date === date);
+  const tip = day.find(t => t.cat === 'ci_tips' && t.shift) || (day.filter(t => t.cat === 'ci_tips').length === 1 ? day.find(t => t.cat === 'ci_tips') : null);
+  const wag = day.find(t => t.cat === 'ci_salary' && t.shift) || (day.filter(t => t.cat === 'ci_salary').length === 1 ? day.find(t => t.cat === 'ci_salary') : null);
+  const others = day.filter(t => t !== tip && t !== wag);
+  const cash = accs().find(a => a.id === 'a_cash' && akind(a) === 'reg') || accs().find(a => akind(a) === 'reg');
+  const accSel = tip?.acc || wag?.acc || cash?.id;
+  openSheet(`Зміна · ${new Date(date).toLocaleDateString('uk-UA', { weekday: 'short', day: 'numeric', month: 'long' })}`, `<form id="shf">
+    <label class="f">🫖 Чайові (можна «200+150+80»)</label>${amtField('tips', tip?.amount ?? '', true)}
+    <label class="f">💰 Зарплата / ставка за зміну (необовʼязково)</label>${amtField('wage', wag?.amount ?? '')}
+    <label class="f">Хто</label>${chipsHtml('who', members(), who)}
+    <label class="f">Куди надійшли гроші</label>${chipsHtml('acc', accItems().filter(a => akind(get('acc', a.id)) !== 'credit'), accSel)}
+    <label class="f">Дата</label><input class="in" type="date" name="date" value="${date}">
+    <label class="f">Коментар</label><input class="in" name="note" value="${esc(tip?.note || wag?.note || '')}" placeholder="наприклад: банкет, вихідний, подвійна зміна">
+    ${others.length ? `<p class="hint">Інші доходи цього дня: ${others.map(t => esc(catOf(t.cat).name) + ' ' + money0(tBase(t))).join(', ')}</p>` : ''}
+    <div class="btns">${tip || wag ? '<button type="button" class="btn danger" data-act="delShift">Видалити зміну</button>' : ''}<button class="btn" type="submit">Зберегти</button></div></form>`, p => {
+    const f = p.querySelector('#shf'); if (!tip && !wag) setTimeout(() => f.elements.tips.focus(), 250);
+    const upsert = (old, cat, amount, base) => {
+      if (amount > 0) put('tx', { ...(old || {}), id: old?.id, type: 'inc', cat, amount, shift: true, ...base });
+      else if (old) remove('tx', old.id);
+    };
+    f.onsubmit = e => {
+      e.preventDefault();
+      const tips = fval(f, 'tips') === '' ? 0 : parseAmt(fval(f, 'tips')), wage = fval(f, 'wage') === '' ? 0 : parseAmt(fval(f, 'wage'));
+      if (isNaN(tips) || isNaN(wage)) return toast('Невірна сума');
+      if (!tips && !wage && !tip && !wag) return toast('Введіть чайові або зарплату');
+      const base = { date: fval(f, 'date'), who: fval(f, 'who'), acc: fval(f, 'acc'), note: fval(f, 'note').trim() };
+      if (!base.acc) return toast('Оберіть рахунок');
+      upsert(tip, 'ci_tips', tips, base); upsert(wag, 'ci_salary', wage, base);
+      closeSheet(); render(); toast(`Зміну збережено: +${money0(tips + wage)}`);
+    };
+    ACT.delShift = () => { if (!confirm('Видалити записи цієї зміни?')) return; if (tip) remove('tx', tip.id); if (wag) remove('tx', wag.id); closeSheet(); render(); toast('Видалено'); };
+  });
 }
 
 /* ---------- Operations ---------- */
@@ -645,10 +729,12 @@ function vMore() {
   if (sub === 'debts') return vDebts();
   if (sub === 'recs') return vRecs();
   if (sub === 'accs') return vAccs();
+  if (sub === 'earn') return vEarn();
   if (sub === 'cats') return vCats();
   const gs = list('goal'), ds = list('debt'), rs = list('rec');
   const item = (id, ic, name, extra) => `<div class="row" data-act="sub" data-id="${id}"><div class="ic">${ic}</div><div class="mid"><div>${name}</div></div><div class="amt">${extra || ''} ›</div></div>`;
   return `<div class="card menu" style="padding:4px 14px">
+    ${item('earn', '🫖', 'Заробіток (зміни, чайові)', '')}
     ${item('goals', '🏁', 'Фінансові цілі', gs.length || '')}
     ${item('debts', '🤝', 'Борги', ds.filter(d => debtLeft(d) > 0).length || '')}
     ${item('recs', '🔁', 'Регулярні платежі', rs.length || '')}
@@ -738,11 +824,12 @@ const chipsHtml = (name, items, sel) => `<div class="chips">${items.map(i => `<l
 const fval = (form, n) => { const el = form.elements[n]; if (!el) return ''; if (el instanceof RadioNodeList) return el.value; if (el.type === 'radio') return el.checked ? el.value : ''; return el.type === 'checkbox' ? el.checked : el.value; };
 function amtField(name, v, big) { return `<input class="in ${big ? 'big' : ''}" name="${name}" inputmode="decimal" autocomplete="off" placeholder="0" value="${v != null && v !== '' ? esc(v) : ''}">`; }
 
+const myId = () => { const id = localStorage.getItem('fb_me'); return id && get('member', id) ? id : ''; };
 const accItems = () => accs().map(a => ({ id: a.id, emoji: a.emoji, name: a.name + (accCur(a) !== 'UAH' ? ' ' + CURS[accCur(a)] : '') }));
 let lastTx = JSON.parse(localStorage.getItem('fb_last') || '{}');
 function txForm(id, preset) {
   const t = id ? get('tx', id) : null;
-  const st = t ? { ...t } : { type: 'exp', date: UI.month === curMonth() ? todayStr() : UI.month + '-01', acc: lastTx.acc || accs()[0]?.id, who: lastTx.who || members()[0]?.id, ...preset };
+  const st = t ? { ...t } : { type: 'exp', date: UI.month === curMonth() ? todayStr() : UI.month + '-01', acc: lastTx.acc || accs()[0]?.id, who: myId() || lastTx.who || members()[0]?.id, ...preset };
   const body = `<form id="txf" autocomplete="off">
     <div class="seg">${[['exp', 'Витрата'], ['inc', 'Дохід'], ['tr', 'Переказ']].map(([k, n]) => `<label><input type="radio" name="type" value="${k}" ${st.type === k ? 'checked' : ''}><span>${n}</span></label>`).join('')}</div>
     <label class="f" id="amtl">Сума (можна «120+45»)</label>${amtField('amount', st.amount, true)}
@@ -968,6 +1055,9 @@ function openSettings() {
       <p class="hint">Статус: ${esc(syncState.msg || (s.token ? '—' : 'не налаштовано'))}</p>
       <div class="btns">${s.token ? '<button type="button" class="btn sec" data-act="syncOff">Вимкнути</button>' : ''}<button class="btn" type="submit">Зберегти й синхронізувати</button></div>
     </form></div>
+  <div class="card"><h3>📱 Чий це телефон</h3>
+    <p class="hint" style="margin-top:0">Операції з цього телефона автоматично записуватимуться на цю людину.</p>
+    <div class="chips">${members().map(m => `<label><input type="radio" name="me" value="${m.id}" ${myId() === m.id ? 'checked' : ''} data-act="setMe" data-id="${m.id}"><span>${esc(m.name)}</span></label>`).join('')}</div></div>
   <div class="card"><h3>👨‍👩‍👧 Члени родини</h3>
     ${members().map(m => `<div class="row"><div class="mid">${esc(m.name)}</div><button class="link" data-act="editMem" data-id="${m.id}">Змінити</button></div>`).join('')}
     <div class="btns"><button class="btn sec sm" data-act="editMem">+ Додати</button></div></div>
@@ -1081,6 +1171,9 @@ const ACT = {
   editAcc: id => accForm(id),
   newAcc: kind => accForm(null, kind),
   homeSettings,
+  shift: date => shiftForm(date),
+  earnWho: id => { UI.earnWho = id; render(); },
+  setMe: id => { localStorage.setItem('fb_me', id); lastTx.who = id; localStorage.setItem('fb_last', JSON.stringify(lastTx)); openSettings(); render(); toast('Збережено ✓'); },
   homeMove: (k, el) => { const c = homeCfg(); const i = c.order.indexOf(k), j = i + Number(el.dataset.d); if (j < 0 || j >= c.order.length) return; [c.order[i], c.order[j]] = [c.order[j], c.order[i]]; saveHomeCfg(c); render(); homeSettings(); },
   homeReset: () => { localStorage.removeItem('fb_home'); render(); homeSettings(); },
   ratesRefresh: () => { toast('Оновлюю курс…'); fetchRates(true); },
