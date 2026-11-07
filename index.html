@@ -206,9 +206,12 @@ async function fetchRates(manual) {
   const got = { ...RATES_AUTO };
   const nbu = async d => { const r = await fetch(`https://bank.gov.ua/NBUStatService/v1/statdirectory/exchange?valcode=USD&date=${ymd(d)}&json`, { cache: 'no-store' }); const j = await r.json(); return j[0]; };
   const today = new Date(), yest = new Date(); yest.setDate(yest.getDate() - 1);
-  const [a, b, m] = await Promise.allSettled([nbu(today), nbu(yest),
-    fetch('https://api.monobank.ua/bank/currency', { cache: 'no-store' }).then(r => r.json())]);
+  const gh = location.hostname.endsWith('github.io') ? [location.hostname.split('.')[0], location.pathname.split('/')[1] || 'budget'] : ['RomanMokeychuk', 'budget'];
+  const [a, b, m, od] = await Promise.allSettled([nbu(today), nbu(yest),
+    fetch('https://api.monobank.ua/bank/currency', { cache: 'no-store' }).then(r => r.json()),
+    fetch(`https://raw.githubusercontent.com/${gh[0]}/${gh[1]}/rates/rates.json?t=${Date.now()}`, { cache: 'no-store' }).then(r => r.json())]);
   let ok = false;
+  if (od.status === 'fulfilled' && od.value?.usd?.buy) { got.odesa = { ...od.value.usd, updated: od.value.updated }; ok = true; }
   if (a.status === 'fulfilled' && a.value?.rate) { got.USD = a.value.rate; got.date = a.value.exchangedate; got.src = 'НБУ'; ok = true; }
   if (b.status === 'fulfilled' && b.value?.rate) got.prevUSD = b.value.rate;
   if (m.status === 'fulfilled' && Array.isArray(m.value)) {
@@ -219,6 +222,10 @@ async function fetchRates(manual) {
   if (ok) { got.t = Date.now(); RATES_AUTO = got; localStorage.setItem('fb_rates', JSON.stringify(got)); render(); if (manual) toast('Курс оновлено ✓'); }
   else if (manual) toast('Не вдалося отримати курс — перевірте інтернет');
 }
+function odTime(iso) {
+  if (!iso) return ''; const d = new Date(iso); const t = d.toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' });
+  return d.toDateString() === new Date().toDateString() ? 'сьогодні ' + t : d.toLocaleDateString('uk-UA', { day: 'numeric', month: 'short' }) + ' ' + t;
+}
 function fxCard() {
   const r = RATES_AUTO, man = getSetting('rates')?.manual;
   if (!r.USD) return `<div class="card tap" data-act="ratesRefresh"><h3>💵 Курс долара</h3><p class="hint" style="margin:0">Курс ще не завантажено — натисніть, щоб оновити.</p></div>`;
@@ -228,6 +235,9 @@ function fxCard() {
   return `<div class="card fx" data-act="ratesRefresh"><h3><span>💵 Курс долара</span><span class="muted" style="font-size:12px;font-weight:400">${esc(r.date || '')} ↻</span></h3>
     <div class="fxg"><div><small>НБУ</small><b>${f2(r.USD)} ₴</b>${r.prevUSD ? arrow : ''}</div>
     ${r.monoBuy ? `<div><small>Моно купівля</small><b>${f2(r.monoBuy)}</b></div><div><small>Моно продаж</small><b>${f2(r.monoSell)}</b></div>` : ''}</div>
+    ${r.odesa ? `<div class="fxg" style="margin-top:8px"><div><small>Обмінники Одеси</small><b style="font-size:13px;margin-top:3px">${odTime(r.odesa.updated)}</b><small>${r.odesa.count} пунктів</small></div>
+      <div><small>Купівля</small><b>${f2(r.odesa.buy)}</b></div><div><small>Продаж</small><b>${f2(r.odesa.sell)}</b></div></div>
+      <p class="hint" style="margin-bottom:0">Найвигідніше купити $ за ${f2(r.odesa.best_sell)} ₴ · продати за ${f2(r.odesa.best_buy)} ₴</p>` : ''}
     ${man ? `<p class="hint" style="margin-bottom:0">Для підрахунків використовується ваш курс: ${f2(rateOf('USD'))} ₴</p>` : ''}</div>`;
 }
 const parseAmt = s => {
