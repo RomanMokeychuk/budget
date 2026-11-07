@@ -49,6 +49,11 @@ header.top h1{font-size:20px;margin:0;font-weight:700;letter-spacing:-.01em}
 .hero .big{font-size:32px;font-weight:800;letter-spacing:-.02em;margin:2px 0 14px;white-space:nowrap}
 .hero .hrow{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;background:rgba(255,255,255,.12);border-radius:14px;padding:10px 12px}
 .hero .hrow b{font-size:15px;white-space:nowrap}
+.fx{cursor:pointer}
+.fxg{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:8px}
+.fxg div{background:var(--chip);border-radius:12px;padding:8px 10px;display:flex;flex-direction:column;gap:1px}
+.fxg small{color:var(--muted);font-size:11px}
+.fxg b{font-size:16px;white-space:nowrap}
 .stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
 .stat{background:var(--card);border-radius:16px;padding:11px;box-shadow:var(--shadow);border:1px solid var(--border)}
 .stat small{display:block;color:var(--muted);font-size:12px}
@@ -194,22 +199,36 @@ function moneyC(v, c, sign) {
   if (!c || c === 'UAH') return money(v, sign);
   return (sign && v > 0 ? '+' : '') + (v < 0 ? '−' : '') + nf.format(Math.abs(Math.round(v * 100) / 100)) + ' ' + CURS[c];
 }
+const ymd = d => `${d.getFullYear()}${pad2(d.getMonth() + 1)}${pad2(d.getDate())}`;
+let ratesBusy = false;
 async function fetchRates(manual) {
-  let got = null;
-  try {
-    const r = await fetch('https://bank.gov.ua/NBUStatService/v1/statdirectory/exchange?json', { cache: 'no-store' });
-    const j = await r.json(); const o = {};
-    for (const x of j) if (FX.includes(x.cc)) { o[x.cc] = x.rate; o.date = x.exchangedate; }
-    if (o.USD) { o.src = 'НБУ'; got = o; }
-  } catch (e) {}
-  if (!got) try {
-    const r = await fetch('https://api.monobank.ua/bank/currency', { cache: 'no-store' });
-    const j = await r.json(); const codes = { 840: 'USD' }; const o = {};
-    for (const x of j) if (x.currencyCodeB === 980 && codes[x.currencyCodeA]) o[codes[x.currencyCodeA]] = x.rateCross || (x.rateBuy + x.rateSell) / 2;
-    if (o.USD) { o.src = 'Monobank'; o.date = new Date().toLocaleDateString('uk-UA'); got = o; }
-  } catch (e) {}
-  if (got) { got.t = Date.now(); RATES_AUTO = got; localStorage.setItem('fb_rates', JSON.stringify(got)); render(); if (manual) toast(`Курс оновлено (${got.src}) ✓`); }
-  else if (manual) toast('Не вдалося отримати курс — введіть вручну');
+  if (ratesBusy) return; ratesBusy = true;
+  const got = { ...RATES_AUTO };
+  const nbu = async d => { const r = await fetch(`https://bank.gov.ua/NBUStatService/v1/statdirectory/exchange?valcode=USD&date=${ymd(d)}&json`, { cache: 'no-store' }); const j = await r.json(); return j[0]; };
+  const today = new Date(), yest = new Date(); yest.setDate(yest.getDate() - 1);
+  const [a, b, m] = await Promise.allSettled([nbu(today), nbu(yest),
+    fetch('https://api.monobank.ua/bank/currency', { cache: 'no-store' }).then(r => r.json())]);
+  let ok = false;
+  if (a.status === 'fulfilled' && a.value?.rate) { got.USD = a.value.rate; got.date = a.value.exchangedate; got.src = 'НБУ'; ok = true; }
+  if (b.status === 'fulfilled' && b.value?.rate) got.prevUSD = b.value.rate;
+  if (m.status === 'fulfilled' && Array.isArray(m.value)) {
+    const x = m.value.find(x => x.currencyCodeA === 840 && x.currencyCodeB === 980);
+    if (x) { got.monoBuy = x.rateBuy; got.monoSell = x.rateSell; got.monoT = x.date * 1000; if (!ok) { got.USD = (x.rateBuy + x.rateSell) / 2; got.src = 'Monobank'; got.date = new Date().toLocaleDateString('uk-UA'); } ok = true; }
+  }
+  ratesBusy = false;
+  if (ok) { got.t = Date.now(); RATES_AUTO = got; localStorage.setItem('fb_rates', JSON.stringify(got)); render(); if (manual) toast('Курс оновлено ✓'); }
+  else if (manual) toast('Не вдалося отримати курс — перевірте інтернет');
+}
+function fxCard() {
+  const r = RATES_AUTO, man = getSetting('rates')?.manual;
+  if (!r.USD) return `<div class="card tap" data-act="ratesRefresh"><h3>💵 Курс долара</h3><p class="hint" style="margin:0">Курс ще не завантажено — натисніть, щоб оновити.</p></div>`;
+  const d = r.prevUSD ? r.USD - r.prevUSD : 0;
+  const f2 = v => v.toLocaleString('uk-UA', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const arrow = Math.abs(d) < 0.005 ? '<span class="muted" style="font-size:12px">без змін</span>' : `<span class="${d > 0 ? 'exp' : 'inc'}" style="font-size:12px;font-weight:600">${d > 0 ? '▲' : '▼'} ${f2(Math.abs(d))}</span>`;
+  return `<div class="card fx" data-act="ratesRefresh"><h3><span>💵 Курс долара</span><span class="muted" style="font-size:12px;font-weight:400">${esc(r.date || '')} ↻</span></h3>
+    <div class="fxg"><div><small>НБУ</small><b>${f2(r.USD)} ₴</b>${r.prevUSD ? arrow : ''}</div>
+    ${r.monoBuy ? `<div><small>Моно купівля</small><b>${f2(r.monoBuy)}</b></div><div><small>Моно продаж</small><b>${f2(r.monoSell)}</b></div>` : ''}</div>
+    ${man ? `<p class="hint" style="margin-bottom:0">Для підрахунків використовується ваш курс: ${f2(rateOf('USD'))} ₴</p>` : ''}</div>`;
 }
 const parseAmt = s => {
   s = String(s ?? '').replace(/\s/g, '').replace(/,/g, '.');
@@ -467,8 +486,9 @@ function vHome() {
   const pct = lim ? Math.min(100, spLim / lim * 100) : 0;
   return monthNav() + `
   <div class="hero"><small>Загальний баланс${crDebtH ? ' (з урахуванням боргу по кредитках)' : ''}</small><div class="big">${money(total)}</div>
-    <div class="hrow"><div><small>Доходи</small><b>+${nf0.format(inc)}</b></div><div><small>Витрати</small><b>−${nf0.format(exp)}</b></div><div><small>Різниця</small><b>${inc - exp < 0 ? '−' : '+'}${nf0.format(Math.abs(inc - exp))}</b></div></div>
+    <div class="hrow"><div><small>Доходи</small><b>${inc ? '+' : ''}${nf0.format(inc)}</b></div><div><small>Витрати</small><b>${exp ? '−' : ''}${nf0.format(exp)}</b></div><div><small>Різниця</small><b>${inc - exp < 0 ? '−' : inc - exp > 0 ? '+' : ''}${nf0.format(Math.abs(inc - exp))}</b></div></div>
   </div>
+  ${fxCard()}
   ${accBlocks(false)}
   <div class="card"><h3>Бюджет місяця <button class="link" data-act="tab" data-id="budget">Відкрити</button></h3>
     ${lim ? `<div style="display:flex;justify-content:space-between"><span>${money0(spLim)} з ${money0(lim)}</span><span class="muted">${Math.round(spLim / lim * 100)}%</span></div>
@@ -994,6 +1014,7 @@ document.addEventListener('visibilitychange', () => {
   else {
     if (localStorage.getItem(LS.pin) && Date.now() - hiddenAt > 60000 && hiddenAt) { rebuildPad(); showLock('check'); }
     if (SYNC.token && Date.now() - (SYNC.last || 0) > 20000) syncNow();
+    if (Date.now() - (RATES_AUTO.t || 0) > 3600e3) fetchRates();
   }
 });
 window.addEventListener('online', () => SYNC.token && syncNow());
@@ -1020,6 +1041,7 @@ const ACT = {
   delRec: id => { if (confirm('Видалити регулярний платіж?')) { remove('rec', id); closeSheet(); render(); } },
   editAcc: id => accForm(id),
   newAcc: kind => accForm(null, kind),
+  ratesRefresh: () => { toast('Оновлюю курс…'); fetchRates(true); },
   ratesAuto: () => { setSetting('rates', { manual: false }); closeSheet(); fetchRates(true); render(); },
   delAcc: id => { const n = txs().filter(t => t.acc === id || t.acc2 === id).length; if (confirm(n ? `На рахунку є ${n} операцій — вони залишаться, але без рахунку. Видалити?` : 'Видалити рахунок?')) { remove('acc', id); closeSheet(); render(); } },
   editCat: id => catForm(id),
@@ -1054,7 +1076,7 @@ saveLocal(); render();
 setSyncUI(SYNC.token ? (localStorage.getItem(LS.dirty) ? 'pending' : 'ok') : 'off');
 if (localStorage.getItem(LS.pin)) { rebuildPad(); showLock('check'); }
 if (SYNC.token) syncNow();
-if (Date.now() - (RATES_AUTO.t || 0) > 6 * 3600e3) fetchRates();
+if (Date.now() - (RATES_AUTO.t || 0) > 3600e3) fetchRates();
 if ('serviceWorker' in navigator && location.protocol === 'https:') navigator.serviceWorker.register('sw.js').catch(() => {});
 </script>
 </body>
