@@ -497,7 +497,7 @@ function upcoming() {
     else if (ci.debt > 0) out.push({ ic: ic(a.id, esc(a.emoji || '💳')), name: a.name, amount: ci.nextMin, cur: c, due: ci.nextDue, sub: 'мінімальний цього місяця внесено ✓ · ' + extra, act: 'payCredit', id: a.id, later: true });
   }
   for (const r of list('rec')) if (!(r.paid && r.paid[ym])) out.push({ ic: ic(r.cat, catOf(r.cat).emoji), name: r.name, amount: Number(r.amount), cur: 'UAH', due: dueIn(ym, r.day), sub: accOf(r.acc).name, act: 'payRec', id: r.id, edit: 'editRec' });
-  for (const d of list('debt')) if (d.dir === 'owe' && !d.due && Number(d.monthly) > 0 && debtLeft(d) > 0) {
+  for (const d of list('debt')) if (d.dir === 'owe' && !d.due && Number(d.monthly) > 0 && debtLeft(d) > 0 && d.minPaid !== ym) {
     const paidM = sum((d.payments || []).filter(p => String(p.d).startsWith(ym)), p => p.amount);
     const left = Math.min(debtLeft(d), Math.max(0, Number(d.monthly) - paidM));
     if (left > 0) out.push({ ic: '<div class="ic">🤝</div>', name: d.person, amount: left, cur: 'UAH', due: dueIn(ym, Number(d.payDay) || 0), sub: 'щомісячний платіж', act: 'debtPay', id: d.id });
@@ -756,7 +756,7 @@ function planDebts() {
     const left = debtLeft(d); const paidM = sum((d.payments || []).filter(p => String(p.d).startsWith(ym)), p => p.amount);
     let min = 0, due = null;
     if (d.due && d.due.slice(0, 7) <= ym) { min = left; due = new Date(d.due); }
-    else if (Number(d.monthly) > 0) { min = Math.min(left, Math.max(0, Number(d.monthly) - paidM)); due = dueIn(ym, Number(d.payDay) || 0); }
+    else if (Number(d.monthly) > 0) { min = d.minPaid === ym ? 0 : Math.min(left, Math.max(0, Number(d.monthly) - paidM)); due = dueIn(ym, Number(d.payDay) || 0); }
     out.push({ kind: 'debt', id: d.id, name: d.person, bal: left, rate: (d.rate === '' || d.rate == null) ? null : Number(d.rate), min, paid: paidM, monthly: Number(d.monthly) || 0, due, fixedDue: !!d.due });
   }
   return out;
