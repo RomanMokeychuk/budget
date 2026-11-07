@@ -1238,7 +1238,10 @@ function goalHist(id) {
 
 function debtForm(id) {
   const d = id ? get('debt', id) : null;
-  openSheet(d ? 'Борг' : 'Новий борг', `<form id="df">
+  const recon = d ? `<form id="rdf" class="card" style="margin:0 0 12px;padding:12px;border:1px solid var(--accent)"><b style="font-size:14px">⚖️ Звірити з банком</b>
+    <p class="hint" style="margin-top:4px">Зараз у застосунку залишок: <b>${money0(debtLeft(d))}</b>. Впишіть залишок із банку — цифра виправиться.</p>
+    <div style="display:flex;gap:8px;align-items:flex-end"><div style="flex:1"><label class="f">Залишок боргу в банку</label>${amtField('real', '')}</div><button class="btn" type="submit" style="margin-bottom:2px">Звірити</button></div></form>` : '';
+  openSheet(d ? 'Борг' : 'Новий борг', recon + `<form id="df">
     <div class="seg"><label><input type="radio" name="dir" value="owe" ${!d || d.dir === 'owe' ? 'checked' : ''}><span>Ми винні</span></label><label><input type="radio" name="dir" value="lent" ${d?.dir === 'lent' ? 'checked' : ''}><span>Нам винні</span></label></div>
     <label class="f">Кому / хто (банк, людина)</label><input class="in" name="person" value="${esc(d?.person || '')}" placeholder="Monobank розстрочка, Саша…" required>
     <label class="f">Загальна сума</label>${amtField('total', d?.total)}
@@ -1248,7 +1251,10 @@ function debtForm(id) {
     <label class="f">Відсотки, % на місяць (для плану погашення)</label><input class="in" name="rate" inputmode="decimal" value="${esc(d?.rate ?? '')}" placeholder="напр. 3 або 0">
     <label class="f">Нотатка</label><input class="in" name="note" value="${esc(d?.note || '')}">
     <div class="btns">${d ? `<button type="button" class="btn danger" data-act="delDebt" data-id="${d.id}">Видалити</button>` : ''}<button class="btn" type="submit">Зберегти</button></div></form>`, p => {
-    const f = p.querySelector('#df');
+    const f = p.querySelector('#df'); const rd = p.querySelector('#rdf');
+    if (rd) rd.onsubmit = e => { e.preventDefault(); const v = parseAmt(fval(rd, 'real')); if (isNaN(v)) return toast('Введіть суму');
+      const diff = Math.abs(v) - debtLeft(d); put('debt', { ...get('debt', d.id), total: Math.round(((Number(d.total) || 0) + diff) * 100) / 100 });
+      closeSheet(); render(); toast(Math.abs(diff) < 0.01 ? 'Все збігається ✓' : 'Залишок виправлено ✓'); };
     f.onsubmit = e => { e.preventDefault(); const total = parseAmt(fval(f, 'total')); if (!(total > 0)) return toast('Введіть суму');
       const n = v => { const x = parseAmt(v); return isNaN(x) ? '' : x; };
       put('debt', { ...(d || { payments: [] }), dir: fval(f, 'dir'), person: fval(f, 'person').trim(), total, due: fval(f, 'due'), note: fval(f, 'note').trim(),
@@ -1297,7 +1303,10 @@ function accForm(id, kind0) {
   const ttl = { reg: 'рахунок', save: 'збереження', credit: 'кредитка' };
   const emo = { reg: '👛', save: '🏦', credit: '💳' };
   const initShown = a ? (kind === 'credit' ? Math.max(0, -(Number(a.init) || 0)) : a.init) : '';
-  openSheet(a ? 'Редагувати' : 'Новий рахунок', `<form id="af">
+  const recon = a ? `<form id="rcf" class="card" style="margin:0 0 12px;padding:12px;border:1px solid var(--accent)"><b style="font-size:14px">⚖️ Звірити з банком</b>
+    <p class="hint" style="margin-top:4px">Зараз у застосунку: <b>${kind === 'credit' ? 'борг ' + moneyC(Math.max(0, -accBalance(a.id)), accCur(a)) : moneyC(accBalance(a.id), accCur(a))}</b>. Впишіть, що показує банк, — цифра виправиться (операції не зміняться).</p>
+    <div style="display:flex;gap:8px;align-items:flex-end"><div style="flex:1"><label class="f">${kind === 'credit' ? 'Борг по картці в банку' : 'Баланс у банку'}</label>${amtField('real', '')}</div><button class="btn" type="submit" style="margin-bottom:2px">Звірити</button></div></form>` : '';
+  openSheet(a ? 'Редагувати' : 'Новий рахунок', recon + `<form id="af">
     <div class="seg">${[['reg', 'Рахунок'], ['save', 'Збереження'], ['credit', 'Кредитка']].map(([k, n]) => `<label><input type="radio" name="kind" value="${k}" ${kind === k ? 'checked' : ''}><span>${n}</span></label>`).join('')}</div>
     <label class="f">Назва</label><div style="display:flex;gap:8px"><input class="in" name="emoji" value="${esc(a?.emoji || emo[kind])}" style="width:64px;text-align:center"><input class="in" name="name" value="${esc(a?.name || '')}" required></div>
     <label class="f">Валюта</label><select class="in" name="cur">${Object.keys(CURS).map(c => `<option value="${c}" ${accCur(a) === c ? 'selected' : ''}>${CURS[c]} ${CUR_NAMES[c]} (${c})</option>`).join('')}</select>
@@ -1314,7 +1323,11 @@ function accForm(id, kind0) {
     <label class="f" id="initL"></label>${amtField('init', initShown)}
     <p class="hint" id="accH"></p>
     <div class="btns">${a ? `<button type="button" class="btn danger" data-act="delAcc" data-id="${a.id}">Видалити</button>` : ''}<button class="btn" type="submit">Зберегти</button></div></form>`, p => {
-    const f = p.querySelector('#af');
+    const f = p.querySelector('#af'); const rf = p.querySelector('#rcf');
+    if (rf) rf.onsubmit = e => { e.preventDefault(); let v = parseAmt(fval(rf, 'real')); if (isNaN(v)) return toast('Введіть суму');
+      if (akind(a) === 'credit') v = -Math.abs(v);
+      const diff = v - accBalance(a.id); put('acc', { ...get('acc', a.id), init: Math.round(((Number(a.init) || 0) + diff) * 100) / 100 });
+      closeSheet(); render(); toast(Math.abs(diff) < 0.01 ? 'Все збігається ✓' : `Виправлено на ${moneyC(Math.abs(diff), accCur(a))} ✓`); };
     const upd = () => {
       const k = fval(f, 'kind');
       p.querySelector('#crf').style.display = k === 'credit' ? '' : 'none';
@@ -1470,7 +1483,7 @@ document.addEventListener('visibilitychange', () => {
 window.addEventListener('online', () => SYNC.token && syncNow());
 // поки застосунок відкритий — підтягувати зміни з іншого телефона кожні 45 с
 setInterval(() => { if (!document.hidden && SYNC.token && !syncState.busy) syncNow(); }, 45000);
-const APP_VERSION = '2.2';
+const APP_VERSION = '2.3';
 async function updateApp() {
   toast('Оновлюю застосунок…');
   try { const regs = await navigator.serviceWorker?.getRegistrations?.() || []; for (const r of regs) await r.unregister(); } catch (e) {}
