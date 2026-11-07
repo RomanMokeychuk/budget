@@ -452,6 +452,9 @@ function render() {
   $('#main').innerHTML = v();
   $('.fab').style.display = (UI.tab === 'more' && UI.sub && UI.sub !== 'menu') ? 'none' : '';
   initHeros();
+  const alf = $('#alf'); if (alf) alf.onsubmit = e => { e.preventDefault(); const a = parseAmt(fval(alf, 'amount')); if (!(a > 0)) return toast('Введіть суму');
+    const type = fval(alf, 'type'); UI.alloc = { amount: a, type, who: fval(alf, 'who') || 'mine', keep: fval(alf, 'keep') === '' ? 0 : (parseAmt(fval(alf, 'keep')) || 0) }; render(); };
+  if (alf) alf.querySelectorAll('input[name=type]').forEach(r => r.onchange = () => { const k = alf.elements.keep; if (['bonus', 'wife'].includes(r.value) && k.value === '2000') k.value = '0'; if (r.name === 'type') { const w = alf.querySelector(`input[name=who][value=${r.value === 'wife' ? 'wife' : 'mine'}]`); if (w) w.checked = true; } if (['avans', 'salary'].includes(r.value) && (k.value === '0' || k.value === '')) k.value = '2000'; });
   const q = $('#fq'); if (q && UI._focusQ) { q.focus(); q.setSelectionRange(q.value.length, q.value.length); UI._focusQ = false; }
 }
 
@@ -614,9 +617,9 @@ function heroCards(inc, exp) {
   const parts = [cr.length ? `${cr.length} ${cr.length === 1 ? 'картка' : cr.length < 5 ? 'картки' : 'карток'}` : '', loans.length ? `${loans.length} ${loans.length === 1 ? 'кредит' : loans.length < 5 ? 'кредити' : 'кредитів'}` : ''].filter(Boolean).join(' + ');
   const c2 = `<div class="hero hero-cr"><small>💳 Кредити · ${parts}</small><div class="big">−${money(debt).replace('−', '')}</div>
     <div class="hrow"><div><small>До сплати</small><b>${minNow ? nf0.format(Math.ceil(minNow)) : '✓ 0'}</b></div><div><small>Найближчий</small><b>${d || '—'}</b></div><div><small>Відсотки/міс</small><b>${interest ? '~' + nf0.format(interest) : '0'}</b></div></div>
-    <button class="btn sm" data-act="sub" data-id="plan" style="float:right;background:rgba(255,255,255,.2);box-shadow:none;margin-top:6px">🎯 План</button><small style="margin-top:8px">${lim ? `Кредитки: використано ${Math.round((debt - loanSum) / lim * 100)}% ліміту · вільно ${money0(Math.max(0, lim - debt + loanSum))}` : ''}${loanSum ? `${lim ? '<br>' : ''}Кредити (борги): ${money0(loanSum)}` : ''}</small></div>`;
+    <button class="btn sm" data-act="sub" data-id="plan" style="float:right;background:rgba(255,255,255,.2);box-shadow:none;margin-top:6px;margin-left:6px">🎯 План</button><button class="btn sm" data-act="sub" data-id="alloc" style="float:right;background:rgba(255,255,255,.2);box-shadow:none;margin-top:6px">💡 Куди гроші</button><small style="margin-top:8px">${lim ? `Кредитки: використано ${Math.round((debt - loanSum) / lim * 100)}% ліміту · вільно ${money0(Math.max(0, lim - debt + loanSum))}` : ''}${loanSum ? `${lim ? '<br>' : ''}Кредити (борги): ${money0(loanSum)}` : ''}</small></div>`;
   const slide = Number(localStorage.getItem('fb_hero') || 0);
-  return `<div class="heros" id="heros">${c1}${c2}</div><div class="hdots"><button data-act="hero" data-id="0" class="${slide ? '' : 'on'}">💰 Мої гроші</button><button data-act="hero" data-id="1" class="${slide ? 'on' : ''}">💳 Кредити</button></div>`;
+  return `<button class="btn block" data-act="sub" data-id="alloc" style="margin-bottom:10px">💡 Прийшли гроші — куди покласти?</button><div class="heros" id="heros">${c1}${c2}</div><div class="hdots"><button data-act="hero" data-id="0" class="${slide ? '' : 'on'}">💰 Мої гроші</button><button data-act="hero" data-id="1" class="${slide ? 'on' : ''}">💳 Кредити</button></div>`;
 }
 function initHeros() {
   const el = $('#heros'); if (!el) return;
@@ -826,6 +829,8 @@ function vPlan() {
         <div class="amt">${pay ? money0(pay) : '<span class="muted">—</span>'}${pay ? `<br><button class="btn sm" data-act="${r.kind === 'card' ? 'payCreditAmt' : 'debtPay'}" data-id="${r.id}" data-amt="${Math.ceil(pay)}">Сплатити</button>` : ''}</div></div>`; }).join('')}
     <div class="row"><div class="mid"><b>Разом цього місяця</b></div><div class="amt">${money0(total)}</div></div>
     ${pm.rows.filter(r => r.grace).map(r => `<p class="hint">💚 <b>${esc(r.name)}</b> ще в пільговому періоді: якщо внести <b>${money0(r.grace)}</b> до ${r.due.toLocaleDateString('uk-UA', { day: 'numeric', month: 'long' })}, відсотків не буде зовсім (економія ~${money0(r.bal * effRate(r) / 100)}/міс). Якщо прийде великий бонус — це найкраще, куди його направити.</p>`).join('')}</div>
+  <div class="card"><h3>💡 Прийшли гроші?</h3><p class="hint" style="margin-top:0">Аванс, зарплата, бонус чи гроші від дружини — застосунок скаже, куди і скільки.</p>
+    <button class="btn block" data-act="sub" data-id="alloc">💡 Куди покласти гроші</button></div>
   <div class="card"><h3>💵 Прийшов бонус?</h3>
     <p class="hint" style="margin-top:0">Запишіть бонус — частина піде на борги, план перерахується одразу.</p>
     <button class="btn block" data-act="bonusForm">＋ Записати бонус</button></div>
@@ -849,6 +854,67 @@ function bonusForm() {
       put('tx', { type: 'inc', cat: 'ci_bonus', amount: a, toDebt: td, acc: fval(f, 'acc'), who: myId() || 'm_1', date: todayStr(), note: 'Бонус' });
       closeSheet(); render(); toast(`Бонус записано: ${money0(td)} на борги`); };
   });
+}
+
+/* ---------- Where to put money (allocator) ---------- */
+const ALLOC_TYPES = [['avans', 'Аванс'], ['salary', 'Зарплата'], ['bonus', 'Бонус'], ['wife', 'Від дружини'], ['other', 'Інше']];
+function nextIncomeDate(type, now = new Date()) {
+  const d = now.getDate(), y = now.getFullYear(), m = now.getMonth();
+  const endM = new Date(y, m + 1, 0), mid = new Date(y, m, 15), midNext = new Date(y, m + 1, 15);
+  if (type === 'avans') return endM;                       // наступні гроші — зарплата в кінці місяця
+  if (type === 'salary') return d >= 25 ? midNext : mid > now ? mid : endM;   // наступні — аванс 15-го
+  return d < 15 ? mid : d < 28 ? endM : midNext;          // бонус/інше — до найближчого надходження
+}
+const ALLOC_WHO = [['mine', 'Мої'], ['wife', 'Дружини'], ['all', 'Усі']];
+function wifeName() { const me = myId() || 'm_1'; const w = members().find(m => m.id !== me); return w ? w.name : ''; }
+function isWifeDebt(name) { const w = wifeName(); return /дружин/i.test(name || '') || (w && w.length > 2 && (name || '').toLowerCase().includes(w.toLowerCase())); }
+function allocate(amount, type, keep, who = 'mine') {
+  const okWho = n => who === 'all' || (who === 'wife' ? isWifeDebt(n) : !isWifeDebt(n));
+  const now = new Date(), next = nextIncomeDate(type, now), t0 = day0(now);
+  const horizon = Math.round((day0(next) - t0) / 864e5) + 2;
+  let left = Math.max(0, amount - keep); const lines = [];
+  const must = upcoming().filter(x => x.act !== 'payRec' && !x.later && x.days <= horizon && okWho(x.name)).sort((a, b) => a.days - b.days);
+  for (const x of must) {
+    if (left <= 0) break;
+    const amt = Math.min(Math.ceil(x.amount * 100) / 100, left);
+    lines.push({ kind: 'must', name: x.name, amount: amt, full: x.amount, due: x.due, days: x.days, act: x.act === 'payCredit' ? 'payCreditAmt' : x.act, id: x.id });
+    left -= amt;
+  }
+  const missing = sum(must, x => x.amount) - sum(lines, l => l.amount);
+  if (left > 0) {
+    const order = planOrder(planDebts().filter(r => r.rate !== 0 && r.bal > 0 && okWho(r.name)));
+    for (const r of order) {
+      if (left <= 0) break;
+      const already = sum(lines.filter(l => l.id === r.id), l => l.amount);
+      const room = Math.max(0, r.bal - already); if (!room) continue;
+      const amt = Math.min(room, left);
+      lines.push({ kind: 'extra', name: r.name, amount: amt, rate: r.rate, act: r.kind === 'card' ? 'payCreditAmt' : 'debtPay', id: r.id, grace: r.grace });
+      left -= amt;
+    }
+  }
+  return { lines, keep, next, horizon, missing: Math.max(0, missing), rest: left };
+}
+function vAlloc() {
+  const st = UI.alloc || { amount: '', type: 'avans', keep: 2000, who: 'mine' };
+  const res = st.amount > 0 ? allocate(Number(st.amount), st.type, Number(st.keep) || 0, st.who || 'mine') : null;
+  const dl = d => d.toLocaleDateString('uk-UA', { day: 'numeric', month: 'long' });
+  return back('💡 Куди покласти гроші') + `</div>
+  <div class="card"><form id="alf">
+    <label class="f">Скільки прийшло, ₴</label>${amtField('amount', st.amount, true)}
+    <label class="f">Що це за гроші</label><div class="chips">${ALLOC_TYPES.map(([k, n]) => `<label><input type="radio" name="type" value="${k}" ${st.type === k ? 'checked' : ''}><span>${n}</span></label>`).join('')}</div>
+    <label class="f">Які кредити гасити</label><div class="chips">${ALLOC_WHO.map(([k, n]) => `<label><input type="radio" name="who" value="${k}" ${(st.who || 'mine') === k ? 'checked' : ''}><span>${n}</span></label>`).join('')}</div>
+    <label class="f">Залишити собі (транспорт, обіди), ₴</label>${amtField('keep', st.keep)}
+    <div class="btns"><button class="btn" type="submit">Порахувати</button></div></form></div>
+  ${res ? `<div class="card"><h3>Що зробити з ${money0(Number(st.amount))}</h3>
+    ${res.keep ? `<div class="row"><div class="ic">👛</div><div class="mid"><div>Залишити собі</div><small>до наступних грошей (${dl(res.next)})</small></div><div class="amt">${money0(res.keep)}</div></div>` : ''}
+    ${res.lines.map((l, i) => `<div class="row"><div class="ic" style="background:${l.kind === 'must' ? 'rgba(244,63,94,.15)' : 'rgba(16,185,129,.15)'}">${i + 1}</div>
+      <div class="mid"><div>${esc(l.name)}</div><small>${l.kind === 'must'
+        ? `обовʼязковий платіж · до ${dl(l.due)}${l.days <= 3 ? ' <span class="pill bad">терміново</span>' : ''}${l.amount < l.full ? ` · частково (${money0(l.full)} всього)` : ''}`
+        : `понад обовʼязкове — гасимо найдорожчий${l.rate != null ? ` (${l.rate}%/міс)` : ''}`}</small></div>
+      <div class="amt">${money0(l.amount)}<br><button class="btn sm" data-act="${l.act}" data-id="${l.id}" data-amt="${Math.ceil(l.amount)}">Сплатити</button></div></div>`).join('')}
+    ${res.rest > 0 ? `<div class="row"><div class="ic">✅</div><div class="mid"><div>Усі борги покриті</div></div><div class="amt">${money0(res.rest)}</div></div>` : ''}
+    ${res.missing > 0 ? `<p class="hint bad">⚠️ Не вистачає ${money0(res.missing)} на обовʼязкові платежі до ${dl(res.next)}. Зменшіть суму «собі» або доплатіть з наступних грошей.</p>` : ''}
+    <p class="hint">Спочатку — обовʼязкові платежі, строк яких настане до наступних грошей (${dl(res.next)}). Решта — у найдорожчий кредит за чергою плану. Після оплати тисніть «Сплатити» — план оновиться.</p></div>` : `<p class="hint" style="margin:0 4px">Введіть суму — застосунок підкаже, які платежі закрити зараз і скільки покласти у найдорожчий кредит.</p>`}`;
 }
 
 /* ---------- Operations ---------- */
@@ -959,10 +1025,12 @@ function vMore() {
   if (sub === 'accs') return vAccs();
   if (sub === 'earn') return vEarn();
   if (sub === 'plan') return vPlan();
+  if (sub === 'alloc') return vAlloc();
   if (sub === 'cats') return vCats();
   const gs = list('goal'), ds = list('debt'), rs = list('rec');
   const item = (id, ic, name, extra) => `<div class="row" data-act="sub" data-id="${id}"><div class="ic">${ic}</div><div class="mid"><div>${name}</div></div><div class="amt">${extra || ''} ›</div></div>`;
   return `<div class="card menu" style="padding:4px 14px">
+    ${item('alloc', '💡', 'Куди покласти гроші', '')}
     ${item('plan', '🎯', 'План погашення боргів', '')}
     ${item('earn', '🫖', 'Заробіток (зміни, чайові)', '')}
     ${item('goals', '🏁', 'Фінансові цілі', gs.length || '')}
@@ -1402,7 +1470,7 @@ document.addEventListener('visibilitychange', () => {
 window.addEventListener('online', () => SYNC.token && syncNow());
 // поки застосунок відкритий — підтягувати зміни з іншого телефона кожні 45 с
 setInterval(() => { if (!document.hidden && SYNC.token && !syncState.busy) syncNow(); }, 45000);
-const APP_VERSION = '2.0';
+const APP_VERSION = '2.1';
 async function updateApp() {
   toast('Оновлюю застосунок…');
   try { const regs = await navigator.serviceWorker?.getRegistrations?.() || []; for (const r of regs) await r.unregister(); } catch (e) {}
