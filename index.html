@@ -453,29 +453,54 @@ function accRow(a, tap) {
   return `<div ${attrs}>${ic(a.id, esc(a.emoji || (akind(a) === 'save' ? '🏦' : '👛')))}<div class="mid"><div>${esc(a.name)}</div>${c !== 'UAH' ? `<small>≈ ${money0(toBase(b, c))}</small>` : ''}</div>
     <div class="amt ${b < 0 ? 'bad' : ''}">${moneyC(b, c)}</div></div>`;
 }
-function accBlocks(tap) {
-  const g = k => accs().filter(a => akind(a) === k);
-  const reg = g('reg'), sav = g('save'), cr = g('credit');
-  const savT = sum(sav, a => toBase(accBalance(a.id), accCur(a)));
-  const crDebt = sum(cr, a => toBase(Math.max(0, -accBalance(a.id)), accCur(a)));
-  const fx = [...new Set(accs().map(accCur).filter(c => c !== 'UAH'))]; const r = rates();
-  const add = k => `<button class="link" data-act="newAcc" data-id="${k}">+ Додати</button>`;
-  const rateLine = fx.length ? `<p class="hint">Курс: ${fx.map(c => `1 ${CURS[c]} = ${nf.format(rateOf(c))} ₴`).join(' · ')}${r.manual ? ' (вручну)' : r.date ? ` (${r.src || 'НБУ'}, ${r.date})` : ''}</p>` : '';
-  return `<div class="card"><h3>👛 Рахунки ${tap ? add('reg') : '<button class="link" data-act="sub" data-id="accs">Змінити</button>'}</h3>
-    ${reg.map(a => accRow(a, tap)).join('') || '<p class="hint" style="margin:0">Немає рахунків</p>'}</div>
-  <div class="card"><h3>🏦 Збереження ${sav.length && !tap ? `<span style="font-weight:700">${money0(savT)}</span>` : add('save')}</h3>
-    ${sav.length ? sav.map(a => accRow(a, tap)).join('') + (tap && sav.length ? `<div class="row"><div class="mid"><b>Усього</b></div><div class="amt">${money0(savT)}</div></div>` : '') + rateLine
-      : '<p class="hint" style="margin:0">Відкладені гроші в гривні чи доларах — окремо від щоденних рахунків.</p>'}</div>
-  <div class="card"><h3>💳 Кредитки ${cr.length && !tap ? `<span class="exp" style="font-weight:700">${crDebt ? '−' + money0(crDebt) : ''}</span>` : add('credit')}</h3>
-    ${cr.length ? cr.map(a => accRow(a, tap)).join('') + (tap ? `<div class="row"><div class="mid"><b>Загальний борг</b></div><div class="amt exp">${crDebt ? '−' : ''}${money0(crDebt)}</div></div>` : '')
+function accCard(kind, tap) {
+  const list_ = accs().filter(a => akind(a) === kind);
+  const add = `<button class="link" data-act="newAcc" data-id="${kind}">+ Додати</button>`;
+  if (kind === 'reg') return `<div class="card"><h3>👛 Рахунки ${add}</h3>
+    ${list_.map(a => accRow(a, true)).join('') || '<p class="hint" style="margin:0">Немає рахунків</p>'}</div>`;
+  if (kind === 'save') {
+    const tot = sum(list_, a => toBase(accBalance(a.id), accCur(a)));
+    const fx = [...new Set(list_.map(accCur).filter(c => c !== 'UAH'))]; const r = rates();
+    const rateLine = fx.length ? `<p class="hint">Курс: ${fx.map(c => `1 ${CURS[c]} = ${nf.format(rateOf(c))} ₴`).join(' · ')}${r.manual ? ' (вручну)' : r.date ? ` (${r.src || 'НБУ'}, ${r.date})` : ''}</p>` : '';
+    return `<div class="card"><h3>🏦 Збереження ${add}</h3>
+      ${list_.length ? list_.map(a => accRow(a, true)).join('') + `<div class="row"><div class="mid"><b>Усього</b></div><div class="amt">${money0(tot)}</div></div>` + rateLine
+        : '<p class="hint" style="margin:0">Відкладені гроші в гривні чи доларах — окремо від щоденних рахунків.</p>'}</div>`;
+  }
+  const debt = sum(list_, a => toBase(Math.max(0, -accBalance(a.id)), accCur(a)));
+  return `<div class="card"><h3>💳 Кредитки ${add}</h3>
+    ${list_.length ? list_.map(a => accRow(a, true)).join('') + (list_.length > 1 || debt ? `<div class="row"><div class="mid"><b>Загальний борг</b></div><div class="amt ${debt ? 'exp' : ''}">${debt ? '−' : ''}${money0(debt)}</div></div>` : '')
       : '<p class="hint" style="margin:0">Кредитні картки різних банків: борг, доступний ліміт і день платежу.</p>'}</div>`;
+}
+const accBlocks = tap => ['reg', 'save', 'credit'].map(k => accCard(k, tap)).join('');
+
+/* ---------- Home layout ---------- */
+const HOME_BLOCKS = [['fx', '💵 Курс долара'], ['reg', '👛 Рахунки'], ['credit', '💳 Кредитки'], ['save', '🏦 Збереження'],
+  ['budget', '🎯 Бюджет місяця'], ['recs', '🔁 Платежі до сплати'], ['recent', '📋 Останні операції']];
+function homeCfg() {
+  let c = {}; try { c = JSON.parse(localStorage.getItem('fb_home')) || {}; } catch (e) {}
+  const all = HOME_BLOCKS.map(b => b[0]);
+  const order = (c.order || []).filter(k => all.includes(k)); all.forEach(k => { if (!order.includes(k)) order.push(k); });
+  return { order, hidden: c.hidden || { save: true } };
+}
+const saveHomeCfg = c => localStorage.setItem('fb_home', JSON.stringify(c));
+function homeSettings() {
+  const c = homeCfg(); const name = Object.fromEntries(HOME_BLOCKS);
+  openSheet('Налаштувати головну', `<p class="hint" style="margin-top:0">Увімкніть блоки, які хочете бачити, і стрілками змініть порядок. Налаштування діє на цьому телефоні.</p>
+    <div class="card" style="padding:4px 14px">${c.order.map((k, i) => `<div class="row">
+      <label class="check" style="margin:0;flex:1"><input type="checkbox" data-hk="${k}" ${c.hidden[k] ? '' : 'checked'}> ${name[k]}</label>
+      <button class="x" data-act="homeMove" data-id="${k}" data-d="-1" ${i === 0 ? 'disabled style="opacity:.3"' : ''}>↑</button>
+      <button class="x" data-act="homeMove" data-id="${k}" data-d="1" ${i === c.order.length - 1 ? 'disabled style="opacity:.3"' : ''}>↓</button></div>`).join('')}</div>
+    <div class="btns"><button class="btn sec" data-act="homeReset">Скинути</button><button class="btn" data-act="closeSheet">Готово</button></div>`, p => {
+    p.querySelectorAll('input[data-hk]').forEach(ch => ch.onchange = () => { const c = homeCfg(); c.hidden[ch.dataset.hk] = !ch.checked; saveHomeCfg(c); render(); });
+  });
 }
 
 /* ---------- Home ---------- */
+function homeBody(parts) { const c = homeCfg(); return c.order.filter(k => !c.hidden[k]).map(k => parts[k] || '').join('\n'); }
 function vHome() {
   const m = UI.month, mt = monthTx(m);
   const inc = sum(mt.filter(t => t.type === 'inc'), tBase), exp = sum(mt.filter(t => t.type === 'exp'), tBase);
-  const as = accs(); const total = sum(as, a => toBase(accBalance(a.id), accCur(a)));
+  const as = accs().filter(a => akind(a) !== 'save'); const total = sum(as, a => toBase(accBalance(a.id), accCur(a)));
   const crDebtH = sum(as.filter(a => akind(a) === 'credit'), a => toBase(Math.max(0, -accBalance(a.id)), accCur(a)));
   const sp = spentByCat(m); const ecats = cats('exp');
   const lim = sum(ecats, c => limitFor(c.id, m));
@@ -485,23 +510,23 @@ function vHome() {
   const recent = mt.sort((a, b) => (b.date + b.u).localeCompare(a.date + a.u)).slice(0, 6);
   const pct = lim ? Math.min(100, spLim / lim * 100) : 0;
   return monthNav() + `
-  <div class="hero"><small>Загальний баланс${crDebtH ? ' (з урахуванням боргу по кредитках)' : ''}</small><div class="big">${money(total)}</div>
+  <div class="hero"><small>Баланс рахунків${crDebtH ? ' (мінус борг по кредитках)' : ''}</small><div class="big">${money(total)}</div>
     <div class="hrow"><div><small>Доходи</small><b>${inc ? '+' : ''}${nf0.format(inc)}</b></div><div><small>Витрати</small><b>${exp ? '−' : ''}${nf0.format(exp)}</b></div><div><small>Різниця</small><b>${inc - exp < 0 ? '−' : inc - exp > 0 ? '+' : ''}${nf0.format(Math.abs(inc - exp))}</b></div></div>
   </div>
-  ${fxCard()}
-  ${accBlocks(false)}
-  <div class="card"><h3>Бюджет місяця <button class="link" data-act="tab" data-id="budget">Відкрити</button></h3>
+  ${homeBody({ fx: fxCard(), reg: accCard('reg'), credit: accCard('credit'), save: accCard('save'),
+    budget: `<div class="card"><h3>Бюджет місяця <button class="link" data-act="tab" data-id="budget">Відкрити</button></h3>
     ${lim ? `<div style="display:flex;justify-content:space-between"><span>${money0(spLim)} з ${money0(lim)}</span><span class="muted">${Math.round(spLim / lim * 100)}%</span></div>
     <div class="bar"><i class="${spLim > lim ? 'over' : pct > 85 ? 'warn' : ''}" style="width:${pct}%"></i></div>
     ${over.length ? `<p class="hint bad">Перевитрата: ${over.map(c => `${c.emoji} ${esc(c.name)} (+${money0((sp[c.id] || 0) - limitFor(c.id, m))})`).join(', ')}</p>` : '<p class="hint">Усі категорії в межах лімітів 👍</p>'}`
     : `<p class="hint">Ліміти не задані. Відкрийте «Бюджет», щоб задати ліміти за категоріями.</p>`}
-  </div>
-  ${recs.length ? `<div class="card"><h3>Платежі до сплати <button class="link" data-act="sub" data-id="recs">Усі</button></h3>
-    ${recs.map(r => `<div class="row">${ic(r.cat, catOf(r.cat).emoji)}<div class="mid"><div>${esc(r.name)}</div><small>до ${r.day} числа · ${esc(accOf(r.acc).name)}</small></div>
-    <div class="amt">${money(+r.amount)}<br><button class="btn sm" data-act="payRec" data-id="${r.id}">Сплачено</button></div></div>`).join('')}</div>` : ''}
-  <div class="card"><h3>Останні операції <button class="link" data-act="tab" data-id="ops">Усі</button></h3>
+  </div>`,
+    recs: recs.length ? `<div class="card"><h3>Платежі до сплати <button class="link" data-act="sub" data-id="recs">Усі</button></h3>
+    ${recs.map(r => `<div class="row">${ic(r.cat, catOf(r.cat).emoji)}<div class="mid tap" data-act="editRec" data-id="${r.id}"><div>${esc(r.name)}</div><small>до ${r.day} числа · ${esc(accOf(r.acc).name)}</small></div>
+    <div class="amt">${money(+r.amount)}<br><button class="btn sm" data-act="payRec" data-id="${r.id}">Сплачено</button></div></div>`).join('')}</div>` : '',
+    recent: `<div class="card"><h3>Останні операції <button class="link" data-act="tab" data-id="ops">Усі</button></h3>
     ${recent.length ? recent.map(txRow).join('') : '<div class="empty">Поки порожньо. Натисніть «+», щоб додати першу операцію.</div>'}
-  </div>`;
+  </div>` })}
+  <button class="btn sec block" data-act="homeSettings" style="margin-top:4px">⚙️ Налаштувати головну</button>`;
 }
 
 /* ---------- Operations ---------- */
@@ -617,12 +642,14 @@ function vMore() {
     ${item('goals', '🏁', 'Фінансові цілі', gs.length || '')}
     ${item('debts', '🤝', 'Борги', ds.filter(d => debtLeft(d) > 0).length || '')}
     ${item('recs', '🔁', 'Регулярні платежі', rs.length || '')}
+    ${item('accs', '🏦', 'Збереження', money0(sum(accs().filter(a => akind(a) === 'save'), a => toBase(accBalance(a.id), accCur(a)))))}
   </div>
   <div class="card menu" style="padding:4px 14px">
     ${item('accs', '💳', 'Рахунки й гаманці', accs().length)}
     ${item('cats', '🏷️', 'Категорії', cats().length)}
   </div>
   <div class="card menu" style="padding:4px 14px">
+    <div class="row" data-act="homeSettings"><div class="ic">🏠</div><div class="mid"><div>Налаштувати головну</div></div><div class="amt">›</div></div>
     <div class="row" data-act="settings"><div class="ic">⚙️</div><div class="mid"><div>Налаштування й синхронізація</div><small>${SYNC.token ? 'GitHub: ' + esc(SYNC.owner + '/' + SYNC.repo) : 'Дані лише на цьому пристрої'}</small></div><div class="amt">›</div></div>
   </div>`;
 }
@@ -682,7 +709,7 @@ function vRecs() {
   ${rs.length ? `<p class="hint" style="margin:0 4px">Разом на місяць: <b>${money0(sum(rs, r => r.amount))}</b></p>` : ''}`;
 }
 function vAccs() {
-  return back('Рахунки') + `</div>` + accBlocks(true) +
+  return back('Рахунки й збереження') + `</div>` + accBlocks(true) +
   `<p class="hint" style="margin:0 4px">Зняти готівку, поповнити картку, відкласти в збереження чи погасити кредитку — це операція «Переказ» між рахунками (не рахується витратою).</p>`;
 }
 function vCats() {
@@ -1041,6 +1068,9 @@ const ACT = {
   delRec: id => { if (confirm('Видалити регулярний платіж?')) { remove('rec', id); closeSheet(); render(); } },
   editAcc: id => accForm(id),
   newAcc: kind => accForm(null, kind),
+  homeSettings,
+  homeMove: (k, el) => { const c = homeCfg(); const i = c.order.indexOf(k), j = i + Number(el.dataset.d); if (j < 0 || j >= c.order.length) return; [c.order[i], c.order[j]] = [c.order[j], c.order[i]]; saveHomeCfg(c); render(); homeSettings(); },
+  homeReset: () => { localStorage.removeItem('fb_home'); render(); homeSettings(); },
   ratesRefresh: () => { toast('Оновлюю курс…'); fetchRates(true); },
   ratesAuto: () => { setSetting('rates', { manual: false }); closeSheet(); fetchRates(true); render(); },
   delAcc: id => { const n = txs().filter(t => t.acc === id || t.acc2 === id).length; if (confirm(n ? `На рахунку є ${n} операцій — вони залишаться, але без рахунку. Видалити?` : 'Видалити рахунок?')) { remove('acc', id); closeSheet(); render(); } },
