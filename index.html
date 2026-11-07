@@ -953,12 +953,14 @@ function catForm(id) {
 
 /* settings */
 function openSettings() {
-  const s = SYNC;
+  const s = { ...SYNC };
+  if (!s.owner && location.hostname.endsWith('github.io')) s.owner = location.hostname.split('.')[0];
+  if (!s.repo) s.repo = 'family-budget-data';
   openSheet('Налаштування', `
   <div class="card"><h3>☁️ Синхронізація через GitHub</h3>
     <p class="hint" style="margin-top:0">Дані зберігаються файлом <code>data.json</code> у вашому <b>приватному</b> репозиторії. Введіть однакові налаштування на своєму телефоні й телефоні дружини — бюджет буде спільний.</p>
     <form id="sf">
-      <label class="f">Власник (ваш логін GitHub)</label><input class="in" name="owner" value="${esc(s.owner || '')}" autocapitalize="off" placeholder="mokeichuk">
+      <label class="f">Власник (ваш логін GitHub)</label><input class="in" name="owner" value="${esc(s.owner || '')}" autocapitalize="off" placeholder="RomanMokeychuk">
       <label class="f">Приватний репозиторій для даних</label><input class="in" name="repo" value="${esc(s.repo || '')}" autocapitalize="off" placeholder="family-budget-data">
       <label class="f">Шлях до файлу</label><input class="in" name="path" value="${esc(s.path || 'data.json')}" autocapitalize="off">
       <label class="f">Гілка</label><input class="in" name="branch" value="${esc(s.branch || 'main')}" autocapitalize="off">
