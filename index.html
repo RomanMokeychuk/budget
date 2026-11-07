@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="uk">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
@@ -9,7 +9,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
 <meta name="apple-mobile-web-app-title" content="Бюджет">
 <meta name="robots" content="noindex, nofollow">
-<title>Семейный бюджет</title>
+<title>Сімейний бюджет</title>
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon-192.png">
 <link rel="apple-touch-icon" href="icon-192.png">
@@ -128,17 +128,17 @@ svg text{fill:var(--text)}
 <body>
 <div class="app">
   <header class="top">
-    <h1 id="title">Семейный бюджет</h1>
+    <h1 id="title">Сімейний бюджет</h1>
     <button class="sync" id="syncBtn" data-act="syncNow"><i class="dot" id="syncDot"></i><span id="syncTxt">локально</span></button>
   </header>
   <main id="main"></main>
 </div>
-<button class="fab" data-act="addTx" aria-label="Добавить операцию">+</button>
+<button class="fab" data-act="addTx" aria-label="Додати операцію">+</button>
 <nav class="tabs"><div id="tabs"></div></nav>
 <div class="sheet" id="sheet"><div class="panel" id="panel"></div></div>
 <div class="lock" id="lock">
   <div style="font-size:40px">🔒</div>
-  <div class="muted">Введите PIN-код</div>
+  <div class="muted">Введіть PIN-код</div>
   <div class="pins" id="pins"></div>
   <div class="pad" id="pad"></div>
 </div>
@@ -157,19 +157,19 @@ const addMonth = (m, k) => { let [y, mo] = m.split('-').map(Number); mo += k; wh
 const daysInMonth = m => { const [y, mo] = m.split('-').map(Number); return new Date(y, mo, 0).getDate(); };
 const monthName = (m, short) => {
   const [y, mo] = m.split('-').map(Number);
-  let s = new Date(y, mo - 1, 1).toLocaleDateString('ru-RU', short ? { month: 'short' } : { month: 'long', year: 'numeric' });
-  s = s.replace(/\s?г\.?$/, '').replace('.', '');
+  let s = new Date(y, mo - 1, 1).toLocaleDateString('uk-UA', short ? { month: 'short' } : { month: 'long', year: 'numeric' });
+  s = s.replace(/\s?р\.?$/, '').replace('.', '');
   return s.charAt(0).toUpperCase() + s.slice(1);
 };
 const dayLabel = d => {
   const t = todayStr(); const y = new Date(); y.setDate(y.getDate() - 1);
   const ys = `${y.getFullYear()}-${pad2(y.getMonth()+1)}-${pad2(y.getDate())}`;
-  if (d === t) return 'Сегодня'; if (d === ys) return 'Вчера';
+  if (d === t) return 'Сьогодні'; if (d === ys) return 'Вчора';
   const [Y, M, D] = d.split('-').map(Number);
-  return new Date(Y, M - 1, D).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long', weekday: 'short' });
+  return new Date(Y, M - 1, D).toLocaleDateString('uk-UA', { day: 'numeric', month: 'long', weekday: 'short' });
 };
-const nf = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 2 });
-const nf0 = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 0 });
+const nf = new Intl.NumberFormat('uk-UA', { maximumFractionDigits: 2 });
+const nf0 = new Intl.NumberFormat('uk-UA', { maximumFractionDigits: 0 });
 const cur = () => (getSetting('currency') || '₴');
 const money = (v, sign) => (sign && v > 0 ? '+' : '') + (v < 0 ? '−' : '') + nf.format(Math.abs(Math.round(v * 100) / 100)) + ' ' + cur();
 const money0 = v => (v < 0 ? '−' : '') + nf0.format(Math.abs(v)) + ' ' + cur();
@@ -189,18 +189,18 @@ const COLS = ['tx', 'cat', 'acc', 'member', 'budget', 'goal', 'debt', 'rec', 'se
 
 function seed() {
   const d = { v: 1, col: {} }; COLS.forEach(c => d.col[c] = {});
-  const add = (c, r) => d.col[c][r.id] = { u: 1, ...r };
-  [['c_food','🛒','Продукты'],['c_home','🏠','Жильё, аренда'],['c_util','💡','Коммуналка'],['c_trans','🚌','Транспорт'],
-   ['c_car','⛽','Авто'],['c_cafe','🍽️','Кафе, доставка'],['c_health','💊','Здоровье'],['c_cloth','👕','Одежда'],
-   ['c_subs','📱','Связь, подписки'],['c_house','🧴','Дом, быт'],['c_fun','🎉','Развлечения'],['c_gift','🎁','Подарки'],
-   ['c_edu','📚','Обучение'],['c_debt','💳','Долги, кредиты'],['c_other','📦','Другое']]
+  const add = (c, r) => d.col[c][r.id] = { u: 2, ...r };
+  [['c_food','🛒','Продукти'],['c_home','🏠','Житло, оренда'],['c_util','💡','Комуналка'],['c_trans','🚌','Транспорт'],
+   ['c_car','⛽','Авто'],['c_cafe','🍽️','Кафе, доставка'],['c_health','💊','Здоровʼя'],['c_cloth','👕','Одяг'],
+   ['c_subs','📱','Звʼязок, підписки'],['c_house','🧴','Дім, побут'],['c_fun','🎉','Розваги'],['c_gift','🎁','Подарунки'],
+   ['c_edu','📚','Навчання'],['c_debt','💳','Борги, кредити'],['c_other','📦','Інше']]
     .forEach(([id, emoji, name], i) => add('cat', { id, emoji, name, kind: 'exp', order: i, limit: 0 }));
-  [['ci_salary','💰','Зарплата'],['ci_side','💵','Подработка'],['ci_gift','🎁','Подарки'],['ci_debt','🤝','Возврат долга'],['ci_other','🔄','Другое']]
+  [['ci_salary','💰','Зарплата'],['ci_side','💵','Підробіток'],['ci_gift','🎁','Подарунки'],['ci_debt','🤝','Повернення боргу'],['ci_other','🔄','Інше']]
     .forEach(([id, emoji, name], i) => add('cat', { id, emoji, name, kind: 'inc', order: 100 + i }));
-  add('acc', { id: 'a_card', emoji: '💳', name: 'Карта', init: 0, order: 0 });
-  add('acc', { id: 'a_cash', emoji: '💵', name: 'Наличные', init: 0, order: 1 });
+  add('acc', { id: 'a_card', emoji: '💳', name: 'Картка', init: 0, order: 0 });
+  add('acc', { id: 'a_cash', emoji: '💵', name: 'Готівка', init: 0, order: 1 });
   add('member', { id: 'm_1', name: 'Я', order: 0 });
-  add('member', { id: 'm_2', name: 'Жена', order: 1 });
+  add('member', { id: 'm_2', name: 'Дружина', order: 1 });
   add('setting', { id: 'currency', value: '₴' });
   return d;
 }
@@ -226,8 +226,8 @@ const cats = kind => list('cat').filter(c => !kind || c.kind === kind).sort(byOr
 const accs = () => list('acc').sort(byOrder);
 const members = () => list('member').sort(byOrder);
 const txs = () => list('tx');
-const catOf = id => get('cat', id) || { emoji: '❔', name: 'Без категории' };
-const accOf = id => get('acc', id) || { emoji: '❔', name: 'Счёт удалён' };
+const catOf = id => get('cat', id) || { emoji: '❔', name: 'Без категорії' };
+const accOf = id => get('acc', id) || { emoji: '❔', name: 'Рахунок видалено' };
 const memOf = id => get('member', id);
 
 function monthTx(m) { return txs().filter(t => t.date && t.date.startsWith(m)); }
@@ -263,7 +263,7 @@ function setSyncUI(status, msg) {
   syncState.status = status; if (msg !== undefined) syncState.msg = msg;
   const dot = $('#syncDot'), txt = $('#syncTxt');
   dot.className = 'dot ' + ({ ok: 'ok', pending: 'pending', err: 'err', busy: 'busy' }[status] || '');
-  txt.textContent = { off: 'локально', ok: 'синхр.', pending: 'не отпр.', err: 'ошибка', busy: 'синхр…' }[status] || '';
+  txt.textContent = { off: 'локально', ok: 'синхр.', pending: 'не надісл.', err: 'помилка', busy: 'синхр…' }[status] || '';
 }
 function mergeDB(a, b) {
   const out = { v: 1, col: {} };
@@ -307,15 +307,15 @@ async function ghPut(cfg, data, sha) {
 }
 async function ghErr(r) {
   let m = ''; try { m = (await r.json()).message; } catch (e) {}
-  if (r.status === 401) return 'Токен неверный или истёк (401)';
-  if (r.status === 403) return 'Нет доступа: проверьте права токена — Contents: Read and write (403)';
-  if (r.status === 404) return 'Репозиторий не найден или токен не имеет к нему доступа (404)';
+  if (r.status === 401) return 'Токен невірний або прострочений (401)';
+  if (r.status === 403) return 'Немає доступу: перевірте права токена — Contents: Read and write (403)';
+  if (r.status === 404) return 'Репозиторій не знайдено або токен не має до нього доступу (404)';
   return `GitHub ${r.status}: ${m}`;
 }
 async function syncNow(manual) {
   if (!SYNC.token) { if (manual === true) openSettings(); return; }
   if (syncState.busy) { syncState.again = true; return; }
-  if (!navigator.onLine) { setSyncUI('pending', 'Нет интернета — отправлю позже'); return; }
+  if (!navigator.onLine) { setSyncUI('pending', 'Немає інтернету — надішлю пізніше'); return; }
   syncState.busy = true; setSyncUI('busy');
   try {
     for (let attempt = 0; attempt < 4; attempt++) {
@@ -329,14 +329,14 @@ async function syncNow(manual) {
       }
       localStorage.removeItem(LS.dirty);
       SYNC.last = Date.now(); localStorage.setItem(LS.sync, JSON.stringify(SYNC));
-      setSyncUI('ok', 'Синхронизировано ' + new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }));
+      setSyncUI('ok', 'Синхронізовано ' + new Date().toLocaleTimeString('uk-UA', { hour: '2-digit', minute: '2-digit' }));
       if (changedLocal) render();
-      if (manual === true) toast('Синхронизировано ✓');
+      if (manual === true) toast('Синхронізовано ✓');
       break;
     }
   } catch (e) {
     setSyncUI('err', e.message || String(e));
-    if (manual === true) toast(e.message || 'Ошибка синхронизации');
+    if (manual === true) toast(e.message || 'Помилка синхронізації');
   } finally {
     syncState.busy = false;
     if (syncState.again) { syncState.again = false; setTimeout(syncNow, 300); }
@@ -348,7 +348,7 @@ let UI = { tab: 'home', month: curMonth(), f: { type: '', cat: '', who: '', q: '
 try { const s = JSON.parse(sessionStorage.getItem(LS.ui)); if (s) UI = { ...UI, ...s }; } catch (e) {}
 const saveUI = () => sessionStorage.setItem(LS.ui, JSON.stringify(UI));
 
-const TABS = [['home', '🏠', 'Главная'], ['ops', '📋', 'Операции'], ['budget', '🎯', 'Бюджет'], ['stats', '📊', 'Аналитика'], ['more', '☰', 'Ещё']];
+const TABS = [['home', '🏠', 'Головна'], ['ops', '📋', 'Операції'], ['budget', '🎯', 'Бюджет'], ['stats', '📊', 'Аналітика'], ['more', '☰', 'Ще']];
 function renderTabs() {
   $('#tabs').innerHTML = TABS.map(([k, ic, n]) => `<button class="${UI.tab === k ? 'on' : ''}" data-act="tab" data-id="${k}"><span>${ic}</span>${n}</button>`).join('');
 }
@@ -364,7 +364,7 @@ function render() {
 }
 
 function txRow(t) {
-  const c = t.type === 'tr' ? { emoji: '🔁', name: 'Перевод' } : catOf(t.cat);
+  const c = t.type === 'tr' ? { emoji: '🔁', name: 'Переказ' } : catOf(t.cat);
   const sub = t.type === 'tr' ? `${esc(accOf(t.acc).name)} → ${esc(accOf(t.acc2).name)}` : esc(accOf(t.acc).name);
   const who = memOf(t.who);
   const cls = t.type === 'inc' ? 'inc' : t.type === 'exp' ? 'exp' : 'muted';
@@ -388,25 +388,25 @@ function vHome() {
   const pct = lim ? Math.min(100, spLim / lim * 100) : 0;
   return monthNav() + `
   <div class="stats" style="margin-bottom:12px">
-    <div class="stat"><small>Доходы</small><b class="inc">${money0(inc)}</b></div>
-    <div class="stat"><small>Расходы</small><b class="exp">${money0(exp)}</b></div>
-    <div class="stat"><small>Остаток</small><b class="${inc - exp < 0 ? 'bad' : ''}">${money0(inc - exp)}</b></div>
+    <div class="stat"><small>Доходи</small><b class="inc">${money0(inc)}</b></div>
+    <div class="stat"><small>Витрати</small><b class="exp">${money0(exp)}</b></div>
+    <div class="stat"><small>Залишок</small><b class="${inc - exp < 0 ? 'bad' : ''}">${money0(inc - exp)}</b></div>
   </div>
-  <div class="card"><h3>Счета <button class="link" data-act="sub" data-id="accs">Изменить</button></h3>
+  <div class="card"><h3>Рахунки <button class="link" data-act="sub" data-id="accs">Змінити</button></h3>
     ${as.map(a => `<div class="row"><div class="ic">${esc(a.emoji || '💼')}</div><div class="mid"><div>${esc(a.name)}</div></div><div class="amt ${accBalance(a.id) < 0 ? 'bad' : ''}">${money(accBalance(a.id))}</div></div>`).join('')}
-    <div class="row"><div class="mid"><b>Всего</b></div><div class="amt">${money(total)}</div></div>
+    <div class="row"><div class="mid"><b>Усього</b></div><div class="amt">${money(total)}</div></div>
   </div>
-  <div class="card"><h3>Бюджет месяца <button class="link" data-act="tab" data-id="budget">Открыть</button></h3>
-    ${lim ? `<div style="display:flex;justify-content:space-between"><span>${money0(spLim)} из ${money0(lim)}</span><span class="muted">${Math.round(spLim / lim * 100)}%</span></div>
+  <div class="card"><h3>Бюджет місяця <button class="link" data-act="tab" data-id="budget">Відкрити</button></h3>
+    ${lim ? `<div style="display:flex;justify-content:space-between"><span>${money0(spLim)} з ${money0(lim)}</span><span class="muted">${Math.round(spLim / lim * 100)}%</span></div>
     <div class="bar"><i class="${spLim > lim ? 'over' : pct > 85 ? 'warn' : ''}" style="width:${pct}%"></i></div>
-    ${over.length ? `<p class="hint bad">Перерасход: ${over.map(c => `${c.emoji} ${esc(c.name)} (+${money0((sp[c.id] || 0) - limitFor(c.id, m))})`).join(', ')}</p>` : '<p class="hint">Все категории в рамках лимитов 👍</p>'}`
-    : `<p class="hint">Лимиты не заданы. Откройте «Бюджет», чтобы задать лимиты по категориям.</p>`}
+    ${over.length ? `<p class="hint bad">Перевитрата: ${over.map(c => `${c.emoji} ${esc(c.name)} (+${money0((sp[c.id] || 0) - limitFor(c.id, m))})`).join(', ')}</p>` : '<p class="hint">Усі категорії в межах лімітів 👍</p>'}`
+    : `<p class="hint">Ліміти не задані. Відкрийте «Бюджет», щоб задати ліміти за категоріями.</p>`}
   </div>
-  ${recs.length ? `<div class="card"><h3>Платежи к оплате <button class="link" data-act="sub" data-id="recs">Все</button></h3>
+  ${recs.length ? `<div class="card"><h3>Платежі до сплати <button class="link" data-act="sub" data-id="recs">Усі</button></h3>
     ${recs.map(r => `<div class="row"><div class="ic">${catOf(r.cat).emoji}</div><div class="mid"><div>${esc(r.name)}</div><small>до ${r.day} числа · ${esc(accOf(r.acc).name)}</small></div>
-    <div class="amt">${money(+r.amount)}<br><button class="btn sm" data-act="payRec" data-id="${r.id}">Оплачено</button></div></div>`).join('')}</div>` : ''}
-  <div class="card"><h3>Последние операции <button class="link" data-act="tab" data-id="ops">Все</button></h3>
-    ${recent.length ? recent.map(txRow).join('') : '<div class="empty">Пока пусто. Нажмите «+», чтобы добавить первую операцию.</div>'}
+    <div class="amt">${money(+r.amount)}<br><button class="btn sm" data-act="payRec" data-id="${r.id}">Сплачено</button></div></div>`).join('')}</div>` : ''}
+  <div class="card"><h3>Останні операції <button class="link" data-act="tab" data-id="ops">Усі</button></h3>
+    ${recent.length ? recent.map(txRow).join('') : '<div class="empty">Поки порожньо. Натисніть «+», щоб додати першу операцію.</div>'}
   </div>`;
 }
 
@@ -421,16 +421,16 @@ function vOps() {
   const inc = sum(items.filter(t => t.type === 'inc'), t => t.amount), exp = sum(items.filter(t => t.type === 'exp'), t => t.amount);
   return monthNav() + `
   <div class="filters">
-    <input id="fq" placeholder="🔍 Поиск" value="${esc(f.q)}" data-filter="q">
-    <select data-filter="type"><option value="">Все</option><option value="exp" ${f.type === 'exp' ? 'selected' : ''}>Расходы</option><option value="inc" ${f.type === 'inc' ? 'selected' : ''}>Доходы</option><option value="tr" ${f.type === 'tr' ? 'selected' : ''}>Переводы</option></select>
-    <select data-filter="cat"><option value="">Категория</option>${cats().map(c => `<option value="${c.id}" ${f.cat === c.id ? 'selected' : ''}>${c.emoji} ${esc(c.name)}</option>`).join('')}</select>
-    <select data-filter="who"><option value="">Кто</option>${members().map(m => `<option value="${m.id}" ${f.who === m.id ? 'selected' : ''}>${esc(m.name)}</option>`).join('')}</select>
+    <input id="fq" placeholder="🔍 Пошук" value="${esc(f.q)}" data-filter="q">
+    <select data-filter="type"><option value="">Усі</option><option value="exp" ${f.type === 'exp' ? 'selected' : ''}>Витрати</option><option value="inc" ${f.type === 'inc' ? 'selected' : ''}>Доходи</option><option value="tr" ${f.type === 'tr' ? 'selected' : ''}>Перекази</option></select>
+    <select data-filter="cat"><option value="">Категорія</option>${cats().map(c => `<option value="${c.id}" ${f.cat === c.id ? 'selected' : ''}>${c.emoji} ${esc(c.name)}</option>`).join('')}</select>
+    <select data-filter="who"><option value="">Хто</option>${members().map(m => `<option value="${m.id}" ${f.who === m.id ? 'selected' : ''}>${esc(m.name)}</option>`).join('')}</select>
   </div>
-  <div class="muted" style="font-size:13px;margin:0 4px">${items.length} операций · <span class="inc">${money0(inc)}</span> · <span class="exp">−${nf0.format(exp)} ${cur()}</span></div>
+  <div class="muted" style="font-size:13px;margin:0 4px">${items.length} операцій · <span class="inc">${money0(inc)}</span> · <span class="exp">−${nf0.format(exp)} ${cur()}</span></div>
   ${Object.keys(groups).length ? Object.entries(groups).map(([d, ts]) => {
     const dsum = sum(ts.filter(t => t.type === 'exp'), t => t.amount);
     return `<div class="day"><span>${dayLabel(d)}</span><span>${dsum ? '−' + nf.format(dsum) + ' ' + cur() : ''}</span></div><div class="card" style="padding:4px 14px">${ts.map(txRow).join('')}</div>`;
-  }).join('') : '<div class="card empty">Нет операций за этот месяц</div>'}`;
+  }).join('') : '<div class="card empty">Немає операцій за цей місяць</div>'}`;
 }
 
 /* ---------- Budget ---------- */
@@ -443,20 +443,20 @@ function vBudget() {
   const daysLeft = isCur ? dim - day + 1 : 0;
   return monthNav() + `
   <div class="card">
-    <div style="display:flex;justify-content:space-between;align-items:baseline"><b style="font-size:18px">${money0(S)}</b><span class="muted">из ${money0(L)} лимита</span></div>
+    <div style="display:flex;justify-content:space-between;align-items:baseline"><b style="font-size:18px">${money0(S)}</b><span class="muted">з ${money0(L)} ліміту</span></div>
     <div class="bar"><i class="${S > L && L ? 'over' : L && S / L > .85 ? 'warn' : ''}" style="width:${L ? Math.min(100, S / L * 100) : 0}%"></i></div>
-    <p class="hint">${L ? (S <= L ? `Можно ещё потратить <b>${money0(L - S)}</b>${daysLeft ? ` — это ~${money0((L - S) / daysLeft)} в день до конца месяца` : ''}.` : `<span class="bad">Перерасход на ${money0(S - L)}</span>`) : 'Нажмите на категорию, чтобы задать месячный лимит.'}
-    ${inc ? `<br>Доходы месяца: ${money0(inc)}; плановые расходы ${L ? Math.round(L / inc * 100) + '% от дохода' : '—'}.` : ''}</p>
-    <div class="btns"><button class="btn sec sm" data-act="copyBudget">Скопировать лимиты из прошлого месяца</button></div>
+    <p class="hint">${L ? (S <= L ? `Можна ще витратити <b>${money0(L - S)}</b>${daysLeft ? ` — це ~${money0((L - S) / daysLeft)} на день до кінця місяця` : ''}.` : `<span class="bad">Перевитрата на ${money0(S - L)}</span>`) : 'Натисніть на категорію, щоб задати місячний ліміт.'}
+    ${inc ? `<br>Доходи місяця: ${money0(inc)}; планові витрати ${L ? Math.round(L / inc * 100) + '% від доходу' : '—'}.` : ''}</p>
+    <div class="btns"><button class="btn sec sm" data-act="copyBudget">Скопіювати ліміти з минулого місяця</button></div>
   </div>
   <div class="card" style="padding:4px 14px">
   ${rows.map(({ c, l, s }) => {
     const p = l ? s / l : 0; const cls = l && s > l ? 'over' : p > .85 ? 'warn' : '';
     return `<div class="row tap" data-act="editLimit" data-id="${c.id}" style="flex-wrap:wrap"><div class="ic">${c.emoji}</div>
-      <div class="mid"><div>${esc(c.name)} ${l && s > l ? '<span class="pill bad">перерасход</span>' : ''}</div>
-      <small>${money0(s)} ${l ? 'из ' + money0(l) : '· лимит не задан'}</small>
+      <div class="mid"><div>${esc(c.name)} ${l && s > l ? '<span class="pill bad">перевитрата</span>' : ''}</div>
+      <small>${money0(s)} ${l ? 'з ' + money0(l) : '· ліміт не задано'}</small>
       ${l ? `<div class="bar"><i class="${cls}" style="width:${Math.min(100, p * 100)}%"></i></div>` : ''}</div>
-      <div class="amt ${l && s > l ? 'bad' : 'muted'}" style="font-weight:500;font-size:13px">${l ? (s <= l ? 'ост. ' + money0(l - s) : '−' + money0(s - l)) : '＋'}</div></div>`;
+      <div class="amt ${l && s > l ? 'bad' : 'muted'}" style="font-weight:500;font-size:13px">${l ? (s <= l ? 'зал. ' + money0(l - s) : '−' + money0(s - l)) : '＋'}</div></div>`;
   }).join('')}</div>`;
 }
 
@@ -466,7 +466,7 @@ function donut(parts, total) {
   const R = 60, C = 2 * Math.PI * R; let off = 0;
   const segs = parts.map((p, i) => { const len = total ? p.v / total * C : 0; const s = `<circle r="${R}" cx="80" cy="80" fill="none" stroke="${p.color}" stroke-width="22" stroke-dasharray="${len} ${C - len}" stroke-dashoffset="${-off}" transform="rotate(-90 80 80)"/>`; off += len; return s; }).join('');
   return `<svg viewBox="0 0 160 160" width="170" height="170" style="display:block;margin:0 auto"><circle r="${R}" cx="80" cy="80" fill="none" stroke="var(--chip)" stroke-width="22"/>${segs}
-    <text x="80" y="76" text-anchor="middle" font-size="11" style="fill:var(--muted)">расходы</text><text x="80" y="94" text-anchor="middle" font-size="15" font-weight="700">${esc(money0(total))}</text></svg>`;
+    <text x="80" y="76" text-anchor="middle" font-size="11" style="fill:var(--muted)">витрати</text><text x="80" y="94" text-anchor="middle" font-size="15" font-weight="700">${esc(money0(total))}</text></svg>`;
 }
 function bars(months) {
   const W = 340, H = 170, top = 10, bot = 22, n = months.length, bw = W / n;
@@ -484,7 +484,7 @@ function vStats() {
   const m = UI.month, mt = monthTx(m), sp = spentByCat(m);
   const total = sum(Object.values(sp));
   let parts = Object.entries(sp).map(([id, v]) => ({ id, v, c: catOf(id) })).sort((a, b) => b.v - a.v);
-  if (parts.length > 9) { const rest = parts.slice(8); parts = parts.slice(0, 8).concat([{ id: '_rest', v: sum(rest, r => r.v), c: { emoji: '…', name: 'Остальное' } }]); }
+  if (parts.length > 9) { const rest = parts.slice(8); parts = parts.slice(0, 8).concat([{ id: '_rest', v: sum(rest, r => r.v), c: { emoji: '…', name: 'Решта' } }]); }
   parts.forEach((p, i) => p.color = PAL[i % PAL.length]);
   const months = []; for (let k = 11; k >= 0; k--) { const mm = addMonth(m, -k); const t = monthTx(mm); months.push({ m: mm, inc: sum(t.filter(x => x.type === 'inc'), x => x.amount), exp: sum(t.filter(x => x.type === 'exp'), x => x.amount) }); }
   const inc = sum(mt.filter(t => t.type === 'inc'), t => t.amount);
@@ -496,16 +496,16 @@ function vStats() {
   const avgExp = active.length ? sum(active, x => x.exp) / active.length : 0;
   return monthNav() + `
   <div class="stats" style="margin-bottom:12px">
-    <div class="stat"><small>В день</small><b>${money0(total / dim)}</b></div>
-    <div class="stat"><small>Норма сбережений</small><b class="${inc && inc - total < 0 ? 'bad' : 'inc'}">${inc ? Math.round((inc - total) / inc * 100) + '%' : '—'}</b></div>
-    <div class="stat"><small>vs прошлый мес.</small><b class="${total > prev.exp ? 'exp' : 'inc'}">${prev.exp ? (total >= prev.exp ? '+' : '−') + Math.round(Math.abs(total - prev.exp) / prev.exp * 100) + '%' : '—'}</b></div>
+    <div class="stat"><small>На день</small><b>${money0(total / dim)}</b></div>
+    <div class="stat"><small>Норма заощаджень</small><b class="${inc && inc - total < 0 ? 'bad' : 'inc'}">${inc ? Math.round((inc - total) / inc * 100) + '%' : '—'}</b></div>
+    <div class="stat"><small>vs минулий міс.</small><b class="${total > prev.exp ? 'exp' : 'inc'}">${prev.exp ? (total >= prev.exp ? '+' : '−') + Math.round(Math.abs(total - prev.exp) / prev.exp * 100) + '%' : '—'}</b></div>
   </div>
-  <div class="card"><h3>Куда ушли деньги</h3>
-    ${total ? donut(parts, total) + `<div class="legend" style="margin-top:10px">${parts.map(p => `<div class="row"><i class="sw" style="background:${p.color}"></i><div class="mid"><div>${p.c.emoji} ${esc(p.c.name)}</div></div><div class="amt" style="font-weight:500">${money0(p.v)} <span class="muted" style="font-size:12px">${Math.round(p.v / total * 100)}%</span></div></div>`).join('')}</div>` : '<div class="empty">Нет расходов за месяц</div>'}
+  <div class="card"><h3>Куди пішли гроші</h3>
+    ${total ? donut(parts, total) + `<div class="legend" style="margin-top:10px">${parts.map(p => `<div class="row"><i class="sw" style="background:${p.color}"></i><div class="mid"><div>${p.c.emoji} ${esc(p.c.name)}</div></div><div class="amt" style="font-weight:500">${money0(p.v)} <span class="muted" style="font-size:12px">${Math.round(p.v / total * 100)}%</span></div></div>`).join('')}</div>` : '<div class="empty">Немає витрат за місяць</div>'}
   </div>
-  <div class="card"><h3>Доходы и расходы за 12 месяцев</h3>${bars(months)}
-    <p class="hint"><span class="inc">■</span> доходы &nbsp; <span class="exp">■</span> расходы · средний расход ${money0(avgExp)}/мес</p></div>
-  ${byWho.length ? `<div class="card"><h3>Кто сколько потратил</h3>${byWho.map(x => `<div style="margin:8px 0"><div style="display:flex;justify-content:space-between"><span>${esc(x.p.name)}</span><b>${money0(x.v)}</b></div><div class="bar"><i style="width:${x.v / maxWho * 100}%"></i></div></div>`).join('')}</div>` : ''}
+  <div class="card"><h3>Доходи й витрати за 12 місяців</h3>${bars(months)}
+    <p class="hint"><span class="inc">■</span> доходи &nbsp; <span class="exp">■</span> витрати · середня витрата ${money0(avgExp)}/міс</p></div>
+  ${byWho.length ? `<div class="card"><h3>Хто скільки витратив</h3>${byWho.map(x => `<div style="margin:8px 0"><div style="display:flex;justify-content:space-between"><span>${esc(x.p.name)}</span><b>${money0(x.v)}</b></div><div class="bar"><i style="width:${x.v / maxWho * 100}%"></i></div></div>`).join('')}</div>` : ''}
   `;
 }
 
@@ -520,16 +520,16 @@ function vMore() {
   const gs = list('goal'), ds = list('debt'), rs = list('rec');
   const item = (id, ic, name, extra) => `<div class="row" data-act="sub" data-id="${id}"><div class="ic">${ic}</div><div class="mid"><div>${name}</div></div><div class="amt">${extra || ''} ›</div></div>`;
   return `<div class="card menu" style="padding:4px 14px">
-    ${item('goals', '🏁', 'Финансовые цели', gs.length || '')}
-    ${item('debts', '🤝', 'Долги', ds.filter(d => debtLeft(d) > 0).length || '')}
-    ${item('recs', '🔁', 'Регулярные платежи', rs.length || '')}
+    ${item('goals', '🏁', 'Фінансові цілі', gs.length || '')}
+    ${item('debts', '🤝', 'Борги', ds.filter(d => debtLeft(d) > 0).length || '')}
+    ${item('recs', '🔁', 'Регулярні платежі', rs.length || '')}
   </div>
   <div class="card menu" style="padding:4px 14px">
-    ${item('accs', '💳', 'Счета и кошельки', accs().length)}
-    ${item('cats', '🏷️', 'Категории', cats().length)}
+    ${item('accs', '💳', 'Рахунки й гаманці', accs().length)}
+    ${item('cats', '🏷️', 'Категорії', cats().length)}
   </div>
   <div class="card menu" style="padding:4px 14px">
-    <div class="row" data-act="settings"><div class="ic">⚙️</div><div class="mid"><div>Настройки и синхронизация</div><small>${SYNC.token ? 'GitHub: ' + esc(SYNC.owner + '/' + SYNC.repo) : 'Данные только на этом устройстве'}</small></div><div class="amt">›</div></div>
+    <div class="row" data-act="settings"><div class="ic">⚙️</div><div class="mid"><div>Налаштування й синхронізація</div><small>${SYNC.token ? 'GitHub: ' + esc(SYNC.owner + '/' + SYNC.repo) : 'Дані лише на цьому пристрої'}</small></div><div class="amt">›</div></div>
   </div>`;
 }
 const back = t => `<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><button class="x" data-act="sub" data-id="menu">‹</button><b style="font-size:18px;flex:1">${t}</b>`;
@@ -548,16 +548,16 @@ function goalForecast(g) {
 }
 function vGoals() {
   const gs = list('goal').sort((a, b) => (a.u0 || 0) - (b.u0 || 0));
-  return back('Финансовые цели') + `<button class="btn sm" data-act="editGoal">+ Цель</button></div>
+  return back('Фінансові цілі') + `<button class="btn sm" data-act="editGoal">+ Ціль</button></div>
   ${gs.length ? gs.map(g => {
     const s = goalSaved(g), t = Number(g.target) || 0, f = goalForecast(g);
-    return `<div class="card"><h3><span>${esc(g.emoji || '🏁')} ${esc(g.name)}</span><button class="link" data-act="editGoal" data-id="${g.id}">Изменить</button></h3>
-      <div style="display:flex;justify-content:space-between"><b>${money0(s)}</b><span class="muted">из ${money0(t)}</span></div>
+    return `<div class="card"><h3><span>${esc(g.emoji || '🏁')} ${esc(g.name)}</span><button class="link" data-act="editGoal" data-id="${g.id}">Змінити</button></h3>
+      <div style="display:flex;justify-content:space-between"><b>${money0(s)}</b><span class="muted">з ${money0(t)}</span></div>
       <div class="bar"><i style="width:${t ? Math.min(100, s / t * 100) : 0}%"></i></div>
-      <p class="hint">${f.done ? '🎉 Цель достигнута!' : f.date ? `Осталось ${money0(f.left)}. При ${money0(f.per)}/мес${f.auto ? ' (ваш темп за 3 мес.)' : ''} — достигнете <b>${f.date.toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' })}</b> (через ${f.months} мес.)` : `Осталось ${money0(f.left)}. Задайте ежемесячный взнос или пополните цель, чтобы увидеть дату.`}
-      ${f.need && !f.done ? `<br>Чтобы успеть к ${new Date(g.deadline).toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' })}, нужно ${money0(f.need)}/мес.` : ''}</p>
-      <div class="btns"><button class="btn sm" data-act="goalAdd" data-id="${g.id}">＋ Пополнить</button><button class="btn sec sm" data-act="goalHist" data-id="${g.id}">История</button></div></div>`;
-  }).join('') : '<div class="card empty">Добавьте цель: отпуск, подушка безопасности, машина… Приложение посчитает дату, когда вы её достигнете.</div>'}`;
+      <p class="hint">${f.done ? '🎉 Ціль досягнуто!' : f.date ? `Залишилось ${money0(f.left)}. При ${money0(f.per)}/міс${f.auto ? ' (ваш темп за 3 міс.)' : ''} — досягнете <b>${f.date.toLocaleDateString('uk-UA', { month: 'long', year: 'numeric' })}</b> (через ${f.months} міс.)` : `Залишилось ${money0(f.left)}. Задайте щомісячний внесок або поповніть ціль, щоб побачити дату.`}
+      ${f.need && !f.done ? `<br>Щоб встигнути до ${new Date(g.deadline).toLocaleDateString('uk-UA', { month: 'long', year: 'numeric' })}, потрібно ${money0(f.need)}/міс.` : ''}</p>
+      <div class="btns"><button class="btn sm" data-act="goalAdd" data-id="${g.id}">＋ Поповнити</button><button class="btn sec sm" data-act="goalHist" data-id="${g.id}">Історія</button></div></div>`;
+  }).join('') : '<div class="card empty">Додайте ціль: відпустка, фінансова подушка, машина… Застосунок порахує дату, коли ви її досягнете.</div>'}`;
 }
 /* debts */
 const debtPaid = d => sum(d.payments || [], p => p.amount);
@@ -565,36 +565,36 @@ const debtLeft = d => (Number(d.total) || 0) - debtPaid(d);
 function vDebts() {
   const ds = list('debt');
   const owe = sum(ds.filter(d => d.dir === 'owe'), debtLeft), lent = sum(ds.filter(d => d.dir === 'lent'), debtLeft);
-  return back('Долги') + `<button class="btn sm" data-act="editDebt">+ Долг</button></div>
-  <div class="stats" style="grid-template-columns:1fr 1fr;margin-bottom:12px"><div class="stat"><small>Мы должны</small><b class="exp">${money0(owe)}</b></div><div class="stat"><small>Нам должны</small><b class="inc">${money0(lent)}</b></div></div>
+  return back('Борги') + `<button class="btn sm" data-act="editDebt">+ Борг</button></div>
+  <div class="stats" style="grid-template-columns:1fr 1fr;margin-bottom:12px"><div class="stat"><small>Ми винні</small><b class="exp">${money0(owe)}</b></div><div class="stat"><small>Нам винні</small><b class="inc">${money0(lent)}</b></div></div>
   ${ds.length ? ds.sort((a, b) => debtLeft(b) - debtLeft(a)).map(d => {
     const t = Number(d.total) || 0, p = debtPaid(d), left = t - p;
-    return `<div class="card"><h3><span>${d.dir === 'owe' ? '⬆️' : '⬇️'} ${esc(d.person)} ${left <= 0 ? '<span class="pill ok">закрыт</span>' : ''}</span><button class="link" data-act="editDebt" data-id="${d.id}">Изменить</button></h3>
-      <div class="muted" style="font-size:13px">${d.dir === 'owe' ? 'Мы должны' : 'Нам должны'}${d.due ? ' · до ' + new Date(d.due).toLocaleDateString('ru-RU') : ''}${d.note ? ' · ' + esc(d.note) : ''}</div>
-      <div style="display:flex;justify-content:space-between;margin-top:6px"><span>Осталось <b>${money0(left)}</b></span><span class="muted">из ${money0(t)}</span></div>
+    return `<div class="card"><h3><span>${d.dir === 'owe' ? '⬆️' : '⬇️'} ${esc(d.person)} ${left <= 0 ? '<span class="pill ok">закрито</span>' : ''}</span><button class="link" data-act="editDebt" data-id="${d.id}">Змінити</button></h3>
+      <div class="muted" style="font-size:13px">${d.dir === 'owe' ? 'Ми винні' : 'Нам винні'}${d.due ? ' · до ' + new Date(d.due).toLocaleDateString('uk-UA') : ''}${d.note ? ' · ' + esc(d.note) : ''}</div>
+      <div style="display:flex;justify-content:space-between;margin-top:6px"><span>Залишилось <b>${money0(left)}</b></span><span class="muted">з ${money0(t)}</span></div>
       <div class="bar"><i style="width:${t ? Math.min(100, p / t * 100) : 0}%"></i></div>
-      ${left > 0 ? `<div class="btns"><button class="btn sm" data-act="debtPay" data-id="${d.id}">${d.dir === 'owe' ? 'Внести платёж' : 'Получить платёж'}</button></div>` : ''}</div>`;
-  }).join('') : '<div class="card empty">Кредиты, рассрочки, кто кому одолжил — всё здесь.</div>'}`;
+      ${left > 0 ? `<div class="btns"><button class="btn sm" data-act="debtPay" data-id="${d.id}">${d.dir === 'owe' ? 'Внести платіж' : 'Отримати платіж'}</button></div>` : ''}</div>`;
+  }).join('') : '<div class="card empty">Кредити, розстрочки, хто кому позичив — усе тут.</div>'}`;
 }
 /* recurring */
 function vRecs() {
   const rs = list('rec').sort((a, b) => a.day - b.day); const m = UI.month;
-  return back('Регулярные платежи') + `<button class="btn sm" data-act="editRec">+ Платёж</button></div>${monthNav()}
+  return back('Регулярні платежі') + `<button class="btn sm" data-act="editRec">+ Платіж</button></div>${monthNav()}
   <div class="card" style="padding:4px 14px">${rs.length ? rs.map(r => {
     const paid = r.paid && r.paid[m];
     return `<div class="row"><div class="ic">${catOf(r.cat).emoji}</div><div class="mid tap" data-act="editRec" data-id="${r.id}"><div>${esc(r.name)}</div><small>${r.day} числа · ${esc(accOf(r.acc).name)}</small></div>
-      <div class="amt">${money(+r.amount)}<br>${paid ? '<span class="pill ok">оплачено</span>' : `<button class="btn sm" data-act="payRec" data-id="${r.id}">Оплатить</button>`}</div></div>`;
-  }).join('') : '<div class="empty">Аренда, коммуналка, интернет, подписки — добавьте, и они будут напоминать о себе каждый месяц.</div>'}</div>
-  ${rs.length ? `<p class="hint" style="margin:0 4px">Итого в месяц: <b>${money0(sum(rs, r => r.amount))}</b></p>` : ''}`;
+      <div class="amt">${money(+r.amount)}<br>${paid ? '<span class="pill ok">сплачено</span>' : `<button class="btn sm" data-act="payRec" data-id="${r.id}">Сплатити</button>`}</div></div>`;
+  }).join('') : '<div class="empty">Оренда, комуналка, інтернет, підписки — додайте, і вони нагадуватимуть про себе щомісяця.</div>'}</div>
+  ${rs.length ? `<p class="hint" style="margin:0 4px">Разом на місяць: <b>${money0(sum(rs, r => r.amount))}</b></p>` : ''}`;
 }
 function vAccs() {
-  return back('Счета') + `<button class="btn sm" data-act="editAcc">+ Счёт</button></div>
-  <div class="card" style="padding:4px 14px">${accs().map(a => `<div class="row tap" data-act="editAcc" data-id="${a.id}"><div class="ic">${esc(a.emoji || '💼')}</div><div class="mid"><div>${esc(a.name)}</div><small>Начальный остаток ${money(+a.init || 0)}</small></div><div class="amt">${money(accBalance(a.id))}</div></div>`).join('')}</div>
-  <p class="hint" style="margin:0 4px">Чтобы перенести деньги между счетами (снять наличные, пополнить карту), добавьте операцию типа «Перевод».</p>`;
+  return back('Рахунки') + `<button class="btn sm" data-act="editAcc">+ Рахунок</button></div>
+  <div class="card" style="padding:4px 14px">${accs().map(a => `<div class="row tap" data-act="editAcc" data-id="${a.id}"><div class="ic">${esc(a.emoji || '💼')}</div><div class="mid"><div>${esc(a.name)}</div><small>Початковий залишок ${money(+a.init || 0)}</small></div><div class="amt">${money(accBalance(a.id))}</div></div>`).join('')}</div>
+  <p class="hint" style="margin:0 4px">Щоб перенести гроші між рахунками (зняти готівку, поповнити картку), додайте операцію типу «Переказ».</p>`;
 }
 function vCats() {
-  const sec = (k, t) => `<div class="day"><span>${t}</span></div><div class="card" style="padding:4px 14px">${cats(k).map(c => `<div class="row tap" data-act="editCat" data-id="${c.id}"><div class="ic">${c.emoji}</div><div class="mid"><div>${esc(c.name)}</div></div><div class="amt muted" style="font-weight:400">${k === 'exp' && c.limit ? 'лимит ' + money0(c.limit) : ''} ›</div></div>`).join('')}</div>`;
-  return back('Категории') + `<button class="btn sm" data-act="editCat">+ Категория</button></div>` + sec('exp', 'Расходы') + sec('inc', 'Доходы');
+  const sec = (k, t) => `<div class="day"><span>${t}</span></div><div class="card" style="padding:4px 14px">${cats(k).map(c => `<div class="row tap" data-act="editCat" data-id="${c.id}"><div class="ic">${c.emoji}</div><div class="mid"><div>${esc(c.name)}</div></div><div class="amt muted" style="font-weight:400">${k === 'exp' && c.limit ? 'ліміт ' + money0(c.limit) : ''} ›</div></div>`).join('')}</div>`;
+  return back('Категорії') + `<button class="btn sm" data-act="editCat">+ Категорія</button></div>` + sec('exp', 'Витрати') + sec('inc', 'Доходи');
 }
 
 /* ============ sheets / forms ============ */
@@ -613,21 +613,21 @@ function txForm(id, preset) {
   const t = id ? get('tx', id) : null;
   const st = t ? { ...t } : { type: 'exp', date: UI.month === curMonth() ? todayStr() : UI.month + '-01', acc: lastTx.acc || accs()[0]?.id, who: lastTx.who || members()[0]?.id, ...preset };
   const body = `<form id="txf" autocomplete="off">
-    <div class="seg">${[['exp', 'Расход'], ['inc', 'Доход'], ['tr', 'Перевод']].map(([k, n]) => `<label><input type="radio" name="type" value="${k}" ${st.type === k ? 'checked' : ''}><span>${n}</span></label>`).join('')}</div>
-    <label class="f">Сумма (можно «120+45»)</label>${amtField('amount', st.amount, true)}
+    <div class="seg">${[['exp', 'Витрата'], ['inc', 'Дохід'], ['tr', 'Переказ']].map(([k, n]) => `<label><input type="radio" name="type" value="${k}" ${st.type === k ? 'checked' : ''}><span>${n}</span></label>`).join('')}</div>
+    <label class="f">Сума (можна «120+45»)</label>${amtField('amount', st.amount, true)}
     <div id="txDyn"></div>
-    <label class="f">Кто</label>${chipsHtml('who', members(), st.who)}
+    <label class="f">Хто</label>${chipsHtml('who', members(), st.who)}
     <label class="f">Дата</label><input class="in" type="date" name="date" value="${esc(st.date)}" required>
-    <label class="f">Комментарий</label><input class="in" name="note" value="${esc(st.note || '')}" placeholder="например: АТБ, бензин, подарок маме">
-    <div class="btns">${t ? '<button type="button" class="btn danger" data-act="delTx" data-id="' + t.id + '">Удалить</button>' : ''}<button class="btn" type="submit">Сохранить</button></div>
+    <label class="f">Коментар</label><input class="in" name="note" value="${esc(st.note || '')}" placeholder="наприклад: АТБ, бензин, подарунок мамі">
+    <div class="btns">${t ? '<button type="button" class="btn danger" data-act="delTx" data-id="' + t.id + '">Видалити</button>' : ''}<button class="btn" type="submit">Зберегти</button></div>
   </form>`;
-  openSheet(t ? 'Операция' : 'Новая операция', body, p => {
+  openSheet(t ? 'Операція' : 'Нова операція', body, p => {
     const f = p.querySelector('#txf');
     const dyn = () => {
       const type = fval(f, 'type'); const keep = { cat: fval(f, 'cat') || st.cat, acc: fval(f, 'acc') || st.acc, acc2: fval(f, 'acc2') || st.acc2 };
       p.querySelector('#txDyn').innerHTML = type === 'tr'
-        ? `<label class="f">Откуда</label>${chipsHtml('acc', accs(), keep.acc)}<label class="f">Куда</label>${chipsHtml('acc2', accs(), keep.acc2 || accs().find(a => a.id !== keep.acc)?.id)}`
-        : `<label class="f">Категория</label>${chipsHtml('cat', cats(type), cats(type).some(c => c.id === keep.cat) ? keep.cat : (type === 'exp' ? lastTx.catExp : lastTx.catInc))}<label class="f">Счёт</label>${chipsHtml('acc', accs(), keep.acc)}`;
+        ? `<label class="f">Звідки</label>${chipsHtml('acc', accs(), keep.acc)}<label class="f">Куди</label>${chipsHtml('acc2', accs(), keep.acc2 || accs().find(a => a.id !== keep.acc)?.id)}`
+        : `<label class="f">Категорія</label>${chipsHtml('cat', cats(type), cats(type).some(c => c.id === keep.cat) ? keep.cat : (type === 'exp' ? lastTx.catExp : lastTx.catInc))}<label class="f">Рахунок</label>${chipsHtml('acc', accs(), keep.acc)}`;
     };
     dyn();
     f.querySelectorAll('input[name=type]').forEach(r => r.addEventListener('change', dyn));
@@ -635,28 +635,28 @@ function txForm(id, preset) {
     f.onsubmit = e => {
       e.preventDefault();
       const type = fval(f, 'type'), amount = parseAmt(fval(f, 'amount'));
-      if (!(amount > 0)) return toast('Введите сумму');
+      if (!(amount > 0)) return toast('Введіть суму');
       const rec = { ...(t || {}), id: t?.id, type, amount, date: fval(f, 'date'), note: fval(f, 'note').trim(), who: fval(f, 'who'), acc: fval(f, 'acc') };
-      if (type === 'tr') { rec.acc2 = fval(f, 'acc2'); delete rec.cat; if (!rec.acc || !rec.acc2 || rec.acc === rec.acc2) return toast('Выберите два разных счёта'); }
-      else { rec.cat = fval(f, 'cat'); delete rec.acc2; if (!rec.cat) return toast('Выберите категорию'); if (!rec.acc) return toast('Выберите счёт'); }
+      if (type === 'tr') { rec.acc2 = fval(f, 'acc2'); delete rec.cat; if (!rec.acc || !rec.acc2 || rec.acc === rec.acc2) return toast('Оберіть два різні рахунки'); }
+      else { rec.cat = fval(f, 'cat'); delete rec.acc2; if (!rec.cat) return toast('Оберіть категорію'); if (!rec.acc) return toast('Оберіть рахунок'); }
       put('tx', rec);
       lastTx = { ...lastTx, acc: rec.acc, who: rec.who, [type === 'inc' ? 'catInc' : 'catExp']: rec.cat || lastTx.catExp };
       localStorage.setItem('fb_last', JSON.stringify(lastTx));
-      closeSheet(); render(); toast(t ? 'Сохранено' : 'Добавлено ✓');
-      if (type === 'exp' && rec.date.startsWith(UI.month)) { const l = limitFor(rec.cat, rec.date.slice(0, 7)); const s = spentByCat(rec.date.slice(0, 7))[rec.cat] || 0; if (l && s > l) setTimeout(() => toast(`⚠️ Перерасход в «${catOf(rec.cat).name}»: ${money0(s)} из ${money0(l)}`), 2300); }
+      closeSheet(); render(); toast(t ? 'Збережено' : 'Додано ✓');
+      if (type === 'exp' && rec.date.startsWith(UI.month)) { const l = limitFor(rec.cat, rec.date.slice(0, 7)); const s = spentByCat(rec.date.slice(0, 7))[rec.cat] || 0; if (l && s > l) setTimeout(() => toast(`⚠️ Перевитрата в «${catOf(rec.cat).name}»: ${money0(s)} з ${money0(l)}`), 2300); }
     };
   });
 }
 
 function limitForm(catId) {
   const c = get('cat', catId), m = UI.month, o = get('budget', m + '|' + catId);
-  openSheet(`${c.emoji} ${esc(c.name)}`, `<form id="lf"><label class="f">Лимит на месяц</label>${amtField('amount', limitFor(catId, m) || '', true)}
-    <label class="check"><input type="checkbox" name="all" ${o ? '' : 'checked'}> Применять для всех месяцев (иначе только ${monthName(m)})</label>
-    <p class="hint">Потрачено в этом месяце: ${money0(spentByCat(m)[catId] || 0)}</p>
-    <div class="btns"><button class="btn" type="submit">Сохранить</button></div></form>`, p => {
+  openSheet(`${c.emoji} ${esc(c.name)}`, `<form id="lf"><label class="f">Ліміт на місяць</label>${amtField('amount', limitFor(catId, m) || '', true)}
+    <label class="check"><input type="checkbox" name="all" ${o ? '' : 'checked'}> Застосовувати для всіх місяців (інакше лише ${monthName(m)})</label>
+    <p class="hint">Витрачено цього місяця: ${money0(spentByCat(m)[catId] || 0)}</p>
+    <div class="btns"><button class="btn" type="submit">Зберегти</button></div></form>`, p => {
     const f = p.querySelector('#lf'); setTimeout(() => f.elements.amount.focus(), 250);
     f.onsubmit = e => {
-      e.preventDefault(); const v = fval(f, 'amount') === '' ? 0 : parseAmt(fval(f, 'amount')); if (isNaN(v)) return toast('Неверная сумма');
+      e.preventDefault(); const v = fval(f, 'amount') === '' ? 0 : parseAmt(fval(f, 'amount')); if (isNaN(v)) return toast('Невірна сума');
       if (fval(f, 'all')) { put('cat', { ...c, limit: v }); if (o) remove('budget', o.id); }
       else put('budget', { id: m + '|' + catId, month: m, cat: catId, amount: v });
       closeSheet(); render();
@@ -666,22 +666,22 @@ function limitForm(catId) {
 function copyBudget() {
   const m = UI.month, pm = addMonth(m, -1); let n = 0;
   for (const c of cats('exp')) { const l = limitFor(c.id, pm); if (l !== limitFor(c.id, m)) { put('budget', { id: m + '|' + c.id, month: m, cat: c.id, amount: l }); n++; } }
-  render(); toast(n ? `Скопировано лимитов: ${n}` : 'Лимиты уже совпадают');
+  render(); toast(n ? `Скопійовано лімітів: ${n}` : 'Ліміти вже збігаються');
 }
 
 function goalForm(id) {
   const g = id ? get('goal', id) : null;
-  openSheet(g ? 'Цель' : 'Новая цель', `<form id="gf">
-    <label class="f">Название</label><div style="display:flex;gap:8px"><input class="in" name="emoji" value="${esc(g?.emoji || '🏁')}" style="width:64px;text-align:center"><input class="in" name="name" value="${esc(g?.name || '')}" placeholder="Отпуск, подушка безопасности…" required></div>
-    <label class="f">Сколько нужно</label>${amtField('target', g?.target)}
-    ${g ? '' : `<label class="f">Уже накоплено</label>${amtField('start', '')}`}
-    <label class="f">Откладываю в месяц (необязательно)</label>${amtField('monthly', g?.monthly || '')}
-    <p class="hint">Если не указать — дата считается по вашему темпу пополнений за последние 3 месяца.</p>
-    <label class="f">Желаемая дата (необязательно)</label><input class="in" type="date" name="deadline" value="${esc(g?.deadline || '')}">
-    <div class="btns">${g ? `<button type="button" class="btn danger" data-act="delGoal" data-id="${g.id}">Удалить</button>` : ''}<button class="btn" type="submit">Сохранить</button></div></form>`, p => {
+  openSheet(g ? 'Ціль' : 'Нова ціль', `<form id="gf">
+    <label class="f">Назва</label><div style="display:flex;gap:8px"><input class="in" name="emoji" value="${esc(g?.emoji || '🏁')}" style="width:64px;text-align:center"><input class="in" name="name" value="${esc(g?.name || '')}" placeholder="Відпустка, фінансова подушка…" required></div>
+    <label class="f">Скільки потрібно</label>${amtField('target', g?.target)}
+    ${g ? '' : `<label class="f">Уже накопичено</label>${amtField('start', '')}`}
+    <label class="f">Відкладаю на місяць (необовʼязково)</label>${amtField('monthly', g?.monthly || '')}
+    <p class="hint">Якщо не вказати — дата рахується за вашим темпом поповнень за останні 3 місяці.</p>
+    <label class="f">Бажана дата (необовʼязково)</label><input class="in" type="date" name="deadline" value="${esc(g?.deadline || '')}">
+    <div class="btns">${g ? `<button type="button" class="btn danger" data-act="delGoal" data-id="${g.id}">Видалити</button>` : ''}<button class="btn" type="submit">Зберегти</button></div></form>`, p => {
     const f = p.querySelector('#gf');
     f.onsubmit = e => {
-      e.preventDefault(); const target = parseAmt(fval(f, 'target')); if (!(target > 0)) return toast('Введите сумму цели');
+      e.preventDefault(); const target = parseAmt(fval(f, 'target')); if (!(target > 0)) return toast('Введіть суму цілі');
       const rec = { ...(g || { contrib: [], u0: Date.now() }), name: fval(f, 'name').trim(), emoji: fval(f, 'emoji').trim(), target, monthly: parseAmt(fval(f, 'monthly')) || 0, deadline: fval(f, 'deadline') };
       if (!g) { const s = parseAmt(fval(f, 'start')); if (s > 0) rec.contrib = [{ d: todayStr(), amount: s }]; }
       put('goal', rec); closeSheet(); render();
@@ -690,59 +690,59 @@ function goalForm(id) {
 }
 function goalAdd(id) {
   const g = get('goal', id);
-  openSheet(`${esc(g.emoji || '🏁')} ${esc(g.name)}`, `<form id="ga"><label class="f">Сумма (минус — снять)</label>${amtField('amount', '', true)}
+  openSheet(`${esc(g.emoji || '🏁')} ${esc(g.name)}`, `<form id="ga"><label class="f">Сума (мінус — зняти)</label>${amtField('amount', '', true)}
     <label class="f">Дата</label><input class="in" type="date" name="d" value="${todayStr()}">
-    <div class="btns"><button class="btn" type="submit">Пополнить</button></div></form>`, p => {
+    <div class="btns"><button class="btn" type="submit">Поповнити</button></div></form>`, p => {
     const f = p.querySelector('#ga'); setTimeout(() => f.elements.amount.focus(), 250);
-    f.onsubmit = e => { e.preventDefault(); const v = parseAmt(fval(f, 'amount')); if (!v) return toast('Введите сумму');
-      put('goal', { ...g, contrib: [...(g.contrib || []), { d: fval(f, 'd'), amount: v }] }); closeSheet(); render(); toast('Цель пополнена ✓'); };
+    f.onsubmit = e => { e.preventDefault(); const v = parseAmt(fval(f, 'amount')); if (!v) return toast('Введіть суму');
+      put('goal', { ...g, contrib: [...(g.contrib || []), { d: fval(f, 'd'), amount: v }] }); closeSheet(); render(); toast('Ціль поповнено ✓'); };
   });
 }
 function goalHist(id) {
   const g = get('goal', id); const c = (g.contrib || []).map((x, i) => ({ ...x, i })).reverse();
-  openSheet('История пополнений', `<div class="card" style="padding:4px 14px">${c.length ? c.map(x => `<div class="row"><div class="mid">${new Date(x.d).toLocaleDateString('ru-RU')}</div><div class="amt ${x.amount < 0 ? 'exp' : 'inc'}">${money(x.amount, true)}</div><button class="x" data-act="goalDelC" data-id="${id}" data-i="${x.i}">✕</button></div>`).join('') : '<div class="empty">Пусто</div>'}</div>`);
+  openSheet('Історія поповнень', `<div class="card" style="padding:4px 14px">${c.length ? c.map(x => `<div class="row"><div class="mid">${new Date(x.d).toLocaleDateString('uk-UA')}</div><div class="amt ${x.amount < 0 ? 'exp' : 'inc'}">${money(x.amount, true)}</div><button class="x" data-act="goalDelC" data-id="${id}" data-i="${x.i}">✕</button></div>`).join('') : '<div class="empty">Порожньо</div>'}</div>`);
 }
 
 function debtForm(id) {
   const d = id ? get('debt', id) : null;
-  openSheet(d ? 'Долг' : 'Новый долг', `<form id="df">
-    <div class="seg"><label><input type="radio" name="dir" value="owe" ${!d || d.dir === 'owe' ? 'checked' : ''}><span>Мы должны</span></label><label><input type="radio" name="dir" value="lent" ${d?.dir === 'lent' ? 'checked' : ''}><span>Нам должны</span></label></div>
-    <label class="f">Кому / кто (банк, человек)</label><input class="in" name="person" value="${esc(d?.person || '')}" placeholder="Monobank рассрочка, Саша…" required>
-    <label class="f">Общая сумма</label>${amtField('total', d?.total)}
-    <label class="f">Вернуть до (необязательно)</label><input class="in" type="date" name="due" value="${esc(d?.due || '')}">
-    <label class="f">Заметка</label><input class="in" name="note" value="${esc(d?.note || '')}">
-    <div class="btns">${d ? `<button type="button" class="btn danger" data-act="delDebt" data-id="${d.id}">Удалить</button>` : ''}<button class="btn" type="submit">Сохранить</button></div></form>`, p => {
+  openSheet(d ? 'Борг' : 'Новий борг', `<form id="df">
+    <div class="seg"><label><input type="radio" name="dir" value="owe" ${!d || d.dir === 'owe' ? 'checked' : ''}><span>Ми винні</span></label><label><input type="radio" name="dir" value="lent" ${d?.dir === 'lent' ? 'checked' : ''}><span>Нам винні</span></label></div>
+    <label class="f">Кому / хто (банк, людина)</label><input class="in" name="person" value="${esc(d?.person || '')}" placeholder="Monobank розстрочка, Саша…" required>
+    <label class="f">Загальна сума</label>${amtField('total', d?.total)}
+    <label class="f">Повернути до (необовʼязково)</label><input class="in" type="date" name="due" value="${esc(d?.due || '')}">
+    <label class="f">Нотатка</label><input class="in" name="note" value="${esc(d?.note || '')}">
+    <div class="btns">${d ? `<button type="button" class="btn danger" data-act="delDebt" data-id="${d.id}">Видалити</button>` : ''}<button class="btn" type="submit">Зберегти</button></div></form>`, p => {
     const f = p.querySelector('#df');
-    f.onsubmit = e => { e.preventDefault(); const total = parseAmt(fval(f, 'total')); if (!(total > 0)) return toast('Введите сумму');
+    f.onsubmit = e => { e.preventDefault(); const total = parseAmt(fval(f, 'total')); if (!(total > 0)) return toast('Введіть суму');
       put('debt', { ...(d || { payments: [] }), dir: fval(f, 'dir'), person: fval(f, 'person').trim(), total, due: fval(f, 'due'), note: fval(f, 'note').trim() }); closeSheet(); render(); };
   });
 }
 function debtPay(id) {
   const d = get('debt', id); const owe = d.dir === 'owe';
-  openSheet(`${owe ? 'Платёж' : 'Возврат'}: ${esc(d.person)}`, `<form id="dp"><label class="f">Сумма (осталось ${money0(debtLeft(d))})</label>${amtField('amount', '', true)}
+  openSheet(`${owe ? 'Платіж' : 'Повернення'}: ${esc(d.person)}`, `<form id="dp"><label class="f">Сума (залишилось ${money0(debtLeft(d))})</label>${amtField('amount', '', true)}
     <label class="f">Дата</label><input class="in" type="date" name="d" value="${todayStr()}">
-    <label class="check"><input type="checkbox" name="tx" checked> Записать как ${owe ? 'расход' : 'доход'} в операции</label>
-    <label class="f">Счёт</label>${chipsHtml('acc', accs(), lastTx.acc || accs()[0]?.id)}
-    <div class="btns"><button class="btn" type="submit">Сохранить</button></div></form>`, p => {
+    <label class="check"><input type="checkbox" name="tx" checked> Записати як ${owe ? 'витрату' : 'дохід'} в операції</label>
+    <label class="f">Рахунок</label>${chipsHtml('acc', accs(), lastTx.acc || accs()[0]?.id)}
+    <div class="btns"><button class="btn" type="submit">Зберегти</button></div></form>`, p => {
     const f = p.querySelector('#dp'); setTimeout(() => f.elements.amount.focus(), 250);
-    f.onsubmit = e => { e.preventDefault(); const v = parseAmt(fval(f, 'amount')); if (!(v > 0)) return toast('Введите сумму');
+    f.onsubmit = e => { e.preventDefault(); const v = parseAmt(fval(f, 'amount')); if (!(v > 0)) return toast('Введіть суму');
       put('debt', { ...d, payments: [...(d.payments || []), { d: fval(f, 'd'), amount: v }] });
-      if (fval(f, 'tx')) put('tx', { type: owe ? 'exp' : 'inc', amount: v, date: fval(f, 'd'), cat: owe ? 'c_debt' : 'ci_debt', acc: fval(f, 'acc'), who: lastTx.who || members()[0]?.id, note: (owe ? 'Платёж: ' : 'Возврат: ') + d.person });
-      closeSheet(); render(); toast('Сохранено ✓'); };
+      if (fval(f, 'tx')) put('tx', { type: owe ? 'exp' : 'inc', amount: v, date: fval(f, 'd'), cat: owe ? 'c_debt' : 'ci_debt', acc: fval(f, 'acc'), who: lastTx.who || members()[0]?.id, note: (owe ? 'Платіж: ' : 'Повернення: ') + d.person });
+      closeSheet(); render(); toast('Збережено ✓'); };
   });
 }
 
 function recForm(id) {
   const r = id ? get('rec', id) : null;
-  openSheet(r ? 'Регулярный платёж' : 'Новый регулярный платёж', `<form id="rf">
-    <label class="f">Название</label><input class="in" name="name" value="${esc(r?.name || '')}" placeholder="Аренда, интернет, Netflix…" required>
-    <label class="f">Сумма</label>${amtField('amount', r?.amount)}
-    <label class="f">День месяца</label><input class="in" type="number" name="day" min="1" max="31" value="${r?.day || 1}">
-    <label class="f">Категория</label>${chipsHtml('cat', cats('exp'), r?.cat || 'c_util')}
-    <label class="f">Счёт</label>${chipsHtml('acc', accs(), r?.acc || accs()[0]?.id)}
-    <div class="btns">${r ? `<button type="button" class="btn danger" data-act="delRec" data-id="${r.id}">Удалить</button>` : ''}<button class="btn" type="submit">Сохранить</button></div></form>`, p => {
+  openSheet(r ? 'Регулярний платіж' : 'Новий регулярний платіж', `<form id="rf">
+    <label class="f">Назва</label><input class="in" name="name" value="${esc(r?.name || '')}" placeholder="Оренда, інтернет, Netflix…" required>
+    <label class="f">Сума</label>${amtField('amount', r?.amount)}
+    <label class="f">День місяця</label><input class="in" type="number" name="day" min="1" max="31" value="${r?.day || 1}">
+    <label class="f">Категорія</label>${chipsHtml('cat', cats('exp'), r?.cat || 'c_util')}
+    <label class="f">Рахунок</label>${chipsHtml('acc', accs(), r?.acc || accs()[0]?.id)}
+    <div class="btns">${r ? `<button type="button" class="btn danger" data-act="delRec" data-id="${r.id}">Видалити</button>` : ''}<button class="btn" type="submit">Зберегти</button></div></form>`, p => {
     const f = p.querySelector('#rf');
-    f.onsubmit = e => { e.preventDefault(); const amount = parseAmt(fval(f, 'amount')); if (!(amount > 0)) return toast('Введите сумму');
+    f.onsubmit = e => { e.preventDefault(); const amount = parseAmt(fval(f, 'amount')); if (!(amount > 0)) return toast('Введіть суму');
       put('rec', { ...(r || { paid: {} }), name: fval(f, 'name').trim(), amount, day: Math.min(31, Math.max(1, parseInt(fval(f, 'day')) || 1)), cat: fval(f, 'cat'), acc: fval(f, 'acc') }); closeSheet(); render(); };
   });
 }
@@ -751,27 +751,27 @@ function payRec(id) {
   const date = m === curMonth() ? todayStr() : `${m}-${pad2(Math.min(r.day, daysInMonth(m)))}`;
   const tx = put('tx', { type: 'exp', amount: Number(r.amount), cat: r.cat, acc: r.acc, who: lastTx.who || members()[0]?.id, date, note: r.name });
   put('rec', { ...r, paid: { ...(r.paid || {}), [m]: tx.id } });
-  render(); toast(`«${r.name}» — оплачено ✓`);
+  render(); toast(`«${r.name}» — сплачено ✓`);
 }
 
 function accForm(id) {
   const a = id ? get('acc', id) : null;
-  openSheet(a ? 'Счёт' : 'Новый счёт', `<form id="af">
-    <label class="f">Название</label><div style="display:flex;gap:8px"><input class="in" name="emoji" value="${esc(a?.emoji || '💳')}" style="width:64px;text-align:center"><input class="in" name="name" value="${esc(a?.name || '')}" placeholder="Моно, Приват, наличные, конверт…" required></div>
-    <label class="f">Начальный остаток (сколько было на момент начала учёта)</label>${amtField('init', a?.init ?? '')}
-    <div class="btns">${a ? `<button type="button" class="btn danger" data-act="delAcc" data-id="${a.id}">Удалить</button>` : ''}<button class="btn" type="submit">Сохранить</button></div></form>`, p => {
+  openSheet(a ? 'Рахунок' : 'Новий рахунок', `<form id="af">
+    <label class="f">Назва</label><div style="display:flex;gap:8px"><input class="in" name="emoji" value="${esc(a?.emoji || '💳')}" style="width:64px;text-align:center"><input class="in" name="name" value="${esc(a?.name || '')}" placeholder="Моно, Приват, готівка, конверт…" required></div>
+    <label class="f">Початковий залишок (скільки було на момент початку обліку)</label>${amtField('init', a?.init ?? '')}
+    <div class="btns">${a ? `<button type="button" class="btn danger" data-act="delAcc" data-id="${a.id}">Видалити</button>` : ''}<button class="btn" type="submit">Зберегти</button></div></form>`, p => {
     const f = p.querySelector('#af');
-    f.onsubmit = e => { e.preventDefault(); const init = fval(f, 'init') === '' ? 0 : parseAmt(fval(f, 'init')); if (isNaN(init)) return toast('Неверная сумма');
+    f.onsubmit = e => { e.preventDefault(); const init = fval(f, 'init') === '' ? 0 : parseAmt(fval(f, 'init')); if (isNaN(init)) return toast('Невірна сума');
       put('acc', { ...(a || { order: accs().length }), name: fval(f, 'name').trim(), emoji: fval(f, 'emoji').trim(), init }); closeSheet(); render(); };
   });
 }
 function catForm(id) {
   const c = id ? get('cat', id) : null;
-  openSheet(c ? 'Категория' : 'Новая категория', `<form id="cf">
-    ${c ? '' : `<div class="seg"><label><input type="radio" name="kind" value="exp" checked><span>Расход</span></label><label><input type="radio" name="kind" value="inc"><span>Доход</span></label></div>`}
-    <label class="f">Название</label><div style="display:flex;gap:8px"><input class="in" name="emoji" value="${esc(c?.emoji || '📦')}" style="width:64px;text-align:center"><input class="in" name="name" value="${esc(c?.name || '')}" required></div>
-    ${!c || c.kind === 'exp' ? `<label class="f">Лимит в месяц (0 — без лимита)</label>${amtField('limit', c?.limit || '')}` : ''}
-    <div class="btns">${c ? `<button type="button" class="btn danger" data-act="delCat" data-id="${c.id}">Удалить</button>` : ''}<button class="btn" type="submit">Сохранить</button></div></form>`, p => {
+  openSheet(c ? 'Категорія' : 'Нова категорія', `<form id="cf">
+    ${c ? '' : `<div class="seg"><label><input type="radio" name="kind" value="exp" checked><span>Витрата</span></label><label><input type="radio" name="kind" value="inc"><span>Дохід</span></label></div>`}
+    <label class="f">Назва</label><div style="display:flex;gap:8px"><input class="in" name="emoji" value="${esc(c?.emoji || '📦')}" style="width:64px;text-align:center"><input class="in" name="name" value="${esc(c?.name || '')}" required></div>
+    ${!c || c.kind === 'exp' ? `<label class="f">Ліміт на місяць (0 — без ліміту)</label>${amtField('limit', c?.limit || '')}` : ''}
+    <div class="btns">${c ? `<button type="button" class="btn danger" data-act="delCat" data-id="${c.id}">Видалити</button>` : ''}<button class="btn" type="submit">Зберегти</button></div></form>`, p => {
     const f = p.querySelector('#cf');
     f.onsubmit = e => { e.preventDefault();
       put('cat', { ...(c || { kind: fval(f, 'kind'), order: 50 + cats().length }), name: fval(f, 'name').trim(), emoji: fval(f, 'emoji').trim() || '📦', limit: parseAmt(fval(f, 'limit')) || 0 }); closeSheet(); render(); };
@@ -781,50 +781,50 @@ function catForm(id) {
 /* settings */
 function openSettings() {
   const s = SYNC;
-  openSheet('Настройки', `
-  <div class="card"><h3>☁️ Синхронизация через GitHub</h3>
-    <p class="hint" style="margin-top:0">Данные хранятся файлом <code>data.json</code> в вашем <b>приватном</b> репозитории. Введите одинаковые настройки на своём телефоне и телефоне жены — бюджет будет общий.</p>
+  openSheet('Налаштування', `
+  <div class="card"><h3>☁️ Синхронізація через GitHub</h3>
+    <p class="hint" style="margin-top:0">Дані зберігаються файлом <code>data.json</code> у вашому <b>приватному</b> репозиторії. Введіть однакові налаштування на своєму телефоні й телефоні дружини — бюджет буде спільний.</p>
     <form id="sf">
-      <label class="f">Владелец (ваш логин GitHub)</label><input class="in" name="owner" value="${esc(s.owner || '')}" autocapitalize="off" placeholder="mokeichuk">
-      <label class="f">Приватный репозиторий для данных</label><input class="in" name="repo" value="${esc(s.repo || '')}" autocapitalize="off" placeholder="family-budget-data">
-      <label class="f">Путь к файлу</label><input class="in" name="path" value="${esc(s.path || 'data.json')}" autocapitalize="off">
-      <label class="f">Ветка</label><input class="in" name="branch" value="${esc(s.branch || 'main')}" autocapitalize="off">
-      <label class="f">Токен (fine-grained, доступ только к этому репо, Contents: Read and write)</label><input class="in" name="token" type="password" value="${esc(s.token || '')}" autocomplete="off" placeholder="github_pat_…">
-      <p class="hint">Статус: ${esc(syncState.msg || (s.token ? '—' : 'не настроено'))}</p>
-      <div class="btns">${s.token ? '<button type="button" class="btn sec" data-act="syncOff">Отключить</button>' : ''}<button class="btn" type="submit">Сохранить и синхронизировать</button></div>
+      <label class="f">Власник (ваш логін GitHub)</label><input class="in" name="owner" value="${esc(s.owner || '')}" autocapitalize="off" placeholder="mokeichuk">
+      <label class="f">Приватний репозиторій для даних</label><input class="in" name="repo" value="${esc(s.repo || '')}" autocapitalize="off" placeholder="family-budget-data">
+      <label class="f">Шлях до файлу</label><input class="in" name="path" value="${esc(s.path || 'data.json')}" autocapitalize="off">
+      <label class="f">Гілка</label><input class="in" name="branch" value="${esc(s.branch || 'main')}" autocapitalize="off">
+      <label class="f">Токен (fine-grained, доступ лише до цього репо, Contents: Read and write)</label><input class="in" name="token" type="password" value="${esc(s.token || '')}" autocomplete="off" placeholder="github_pat_…">
+      <p class="hint">Статус: ${esc(syncState.msg || (s.token ? '—' : 'не налаштовано'))}</p>
+      <div class="btns">${s.token ? '<button type="button" class="btn sec" data-act="syncOff">Вимкнути</button>' : ''}<button class="btn" type="submit">Зберегти й синхронізувати</button></div>
     </form></div>
-  <div class="card"><h3>👨‍👩‍👧 Члены семьи</h3>
-    ${members().map(m => `<div class="row"><div class="mid">${esc(m.name)}</div><button class="link" data-act="editMem" data-id="${m.id}">Изменить</button></div>`).join('')}
-    <div class="btns"><button class="btn sec sm" data-act="editMem">+ Добавить</button></div></div>
-  <div class="card"><h3>🔒 PIN-код на этом устройстве</h3>
-    <p class="hint" style="margin-top:0">${localStorage.getItem(LS.pin) ? 'PIN установлен.' : 'Без PIN-кода.'} PIN защищает от случайного просмотра, хранится только на этом телефоне.</p>
-    <div class="btns">${localStorage.getItem(LS.pin) ? '<button class="btn sec sm" data-act="pinOff">Убрать PIN</button>' : ''}<button class="btn sec sm" data-act="pinSet">${localStorage.getItem(LS.pin) ? 'Сменить PIN' : 'Установить PIN'}</button></div></div>
+  <div class="card"><h3>👨‍👩‍👧 Члени родини</h3>
+    ${members().map(m => `<div class="row"><div class="mid">${esc(m.name)}</div><button class="link" data-act="editMem" data-id="${m.id}">Змінити</button></div>`).join('')}
+    <div class="btns"><button class="btn sec sm" data-act="editMem">+ Додати</button></div></div>
+  <div class="card"><h3>🔒 PIN-код на цьому пристрої</h3>
+    <p class="hint" style="margin-top:0">${localStorage.getItem(LS.pin) ? 'PIN встановлено.' : 'Без PIN-коду.'} PIN захищає від випадкового перегляду, зберігається лише на цьому телефоні.</p>
+    <div class="btns">${localStorage.getItem(LS.pin) ? '<button class="btn sec sm" data-act="pinOff">Прибрати PIN</button>' : ''}<button class="btn sec sm" data-act="pinSet">${localStorage.getItem(LS.pin) ? 'Змінити PIN' : 'Встановити PIN'}</button></div></div>
   <div class="card"><h3>💱 Валюта</h3><form id="curf" style="display:flex;gap:8px"><input class="in" name="c" value="${esc(cur())}" style="width:90px"><button class="btn sec" type="submit">OK</button></form></div>
-  <div class="card"><h3>💾 Резервная копия</h3>
-    <div class="btns" style="flex-wrap:wrap"><button class="btn sec sm" data-act="exportJson">Скачать JSON</button><button class="btn sec sm" data-act="exportCsv">Скачать CSV (Excel)</button><button class="btn sec sm" data-act="importJson">Загрузить JSON</button></div>
+  <div class="card"><h3>💾 Резервна копія</h3>
+    <div class="btns" style="flex-wrap:wrap"><button class="btn sec sm" data-act="exportJson">Завантажити JSON</button><button class="btn sec sm" data-act="exportCsv">Завантажити CSV (Excel)</button><button class="btn sec sm" data-act="importJson">Імпортувати JSON</button></div>
     <input type="file" id="impFile" accept=".json,application/json" style="display:none">
-    <div class="btns"><button class="btn danger sm" data-act="wipe">Очистить данные на этом устройстве</button></div></div>
-  <p class="hint" style="text-align:center">Операций: ${txs().length} · v1.0</p>`, p => {
+    <div class="btns"><button class="btn danger sm" data-act="wipe">Очистити дані на цьому пристрої</button></div></div>
+  <p class="hint" style="text-align:center">Операцій: ${txs().length} · v1.0</p>`, p => {
     const f = p.querySelector('#sf');
     f.onsubmit = async e => {
       e.preventDefault();
       const n = { owner: fval(f, 'owner').trim(), repo: fval(f, 'repo').trim(), path: fval(f, 'path').trim() || 'data.json', branch: fval(f, 'branch').trim() || 'main', token: fval(f, 'token').trim() };
-      if (!n.owner || !n.repo || !n.token) return toast('Заполните логин, репозиторий и токен');
+      if (!n.owner || !n.repo || !n.token) return toast('Заповніть логін, репозиторій і токен');
       SYNC = n; localStorage.setItem(LS.sync, JSON.stringify(SYNC)); closeSheet(); render();
       await syncNow(true);
     };
     p.querySelector('#curf').onsubmit = e => { e.preventDefault(); setSetting('currency', e.target.elements.c.value.trim() || '₴'); closeSheet(); render(); };
     p.querySelector('#impFile').onchange = e => {
       const file = e.target.files[0]; if (!file) return;
-      file.text().then(t => { const d = JSON.parse(t); if (!d.col) throw new Error(); DB = mergeDB(DB, d); COLS.forEach(c => DB.col[c] = DB.col[c] || {}); saveLocal(); markDirty(); closeSheet(); render(); toast('Импортировано ✓'); })
-        .catch(() => toast('Не удалось прочитать файл'));
+      file.text().then(t => { const d = JSON.parse(t); if (!d.col) throw new Error(); DB = mergeDB(DB, d); COLS.forEach(c => DB.col[c] = DB.col[c] || {}); saveLocal(); markDirty(); closeSheet(); render(); toast('Імпортовано ✓'); })
+        .catch(() => toast('Не вдалося прочитати файл'));
     };
   });
 }
 function memForm(id) {
   const m = id ? get('member', id) : null;
-  openSheet(m ? 'Член семьи' : 'Добавить', `<form id="mf"><label class="f">Имя</label><input class="in" name="name" value="${esc(m?.name || '')}" required>
-    <div class="btns">${m ? `<button type="button" class="btn danger" data-act="delMem" data-id="${m.id}">Удалить</button>` : ''}<button class="btn" type="submit">Сохранить</button></div></form>`, p => {
+  openSheet(m ? 'Член родини' : 'Додати', `<form id="mf"><label class="f">Імʼя</label><input class="in" name="name" value="${esc(m?.name || '')}" required>
+    <div class="btns">${m ? `<button type="button" class="btn danger" data-act="delMem" data-id="${m.id}">Видалити</button>` : ''}<button class="btn" type="submit">Зберегти</button></div></form>`, p => {
     p.querySelector('#mf').onsubmit = e => { e.preventDefault(); put('member', { ...(m || { order: members().length }), name: e.target.elements.name.value.trim() }); openSettings(); };
   });
 }
@@ -834,8 +834,8 @@ function download(name, text, type) {
 }
 function exportCsv() {
   const q = v => '"' + String(v ?? '').replace(/"/g, '""') + '"';
-  const rows = [['Дата', 'Тип', 'Сумма', 'Категория', 'Счёт', 'Счёт получатель', 'Кто', 'Комментарий']];
-  txs().sort((a, b) => a.date.localeCompare(b.date)).forEach(t => rows.push([t.date, { exp: 'Расход', inc: 'Доход', tr: 'Перевод' }[t.type], String(t.amount).replace('.', ','), t.type === 'tr' ? '' : catOf(t.cat).name, accOf(t.acc).name, t.acc2 ? accOf(t.acc2).name : '', memOf(t.who)?.name || '', t.note || '']));
+  const rows = [['Дата', 'Тип', 'Сума', 'Категорія', 'Рахунок', 'Рахунок отримувач', 'Хто', 'Коментар']];
+  txs().sort((a, b) => a.date.localeCompare(b.date)).forEach(t => rows.push([t.date, { exp: 'Витрата', inc: 'Дохід', tr: 'Переказ' }[t.type], String(t.amount).replace('.', ','), t.type === 'tr' ? '' : catOf(t.cat).name, accOf(t.acc).name, t.acc2 ? accOf(t.acc2).name : '', memOf(t.who)?.name || '', t.note || '']));
   download(`budget-${todayStr()}.csv`, '﻿' + rows.map(r => r.map(q).join(';')).join('\r\n'), 'text/csv;charset=utf-8');
 }
 
@@ -844,11 +844,11 @@ async function hashPin(pin) { const b = await crypto.subtle.digest('SHA-256', ne
 let pinBuf = '', pinMode = 'check', pinFirst = '';
 function showLock(mode) {
   pinMode = mode || 'check'; pinBuf = ''; pinFirst = '';
-  $('#lock .muted').textContent = pinMode === 'check' ? 'Введите PIN-код' : 'Придумайте PIN из 4 цифр';
+  $('#lock .muted').textContent = pinMode === 'check' ? 'Введіть PIN-код' : 'Придумайте PIN з 4 цифр';
   $('#lock').classList.add('open'); drawPins();
 }
 function drawPins() { $('#pins').innerHTML = [0, 1, 2, 3].map(i => `<i class="${i < pinBuf.length ? 'f' : ''}"></i>`).join(''); }
-$('#pad').innerHTML = [1, 2, 3, 4, 5, 6, 7, 8, 9, '', 0, '⌫'].map(k => k === '' ? (localStorage.getItem(LS.pin) ? '<span></span>' : '<button data-pin="cancel" style="font-size:14px">Отмена</button>') : `<button data-pin="${k}">${k}</button>`).join('');
+$('#pad').innerHTML = [1, 2, 3, 4, 5, 6, 7, 8, 9, '', 0, '⌫'].map(k => k === '' ? (localStorage.getItem(LS.pin) ? '<span></span>' : '<button data-pin="cancel" style="font-size:14px">Скасувати</button>') : `<button data-pin="${k}">${k}</button>`).join('');
 $('#pad').addEventListener('click', async e => {
   const k = e.target.closest('button')?.dataset.pin; if (k == null) return;
   if (k === 'cancel') { $('#lock').classList.remove('open'); return; }
@@ -860,11 +860,11 @@ $('#pad').addEventListener('click', async e => {
   if (pinMode === 'check') {
     if (h === localStorage.getItem(LS.pin)) { $('#lock').classList.remove('open'); }
     else { $('#pins').classList.add('shake'); setTimeout(() => { $('#pins').classList.remove('shake'); pinBuf = ''; drawPins(); }, 350); }
-  } else if (!pinFirst) { pinFirst = h; pinBuf = ''; $('#lock .muted').textContent = 'Повторите PIN'; setTimeout(drawPins, 150); }
-  else if (pinFirst === h) { localStorage.setItem(LS.pin, h); $('#lock').classList.remove('open'); toast('PIN установлен'); pinMode = 'check'; rebuildPad(); }
-  else { pinFirst = ''; pinBuf = ''; $('#lock .muted').textContent = 'Не совпало. Придумайте PIN заново'; setTimeout(drawPins, 150); }
+  } else if (!pinFirst) { pinFirst = h; pinBuf = ''; $('#lock .muted').textContent = 'Повторіть PIN'; setTimeout(drawPins, 150); }
+  else if (pinFirst === h) { localStorage.setItem(LS.pin, h); $('#lock').classList.remove('open'); toast('PIN встановлено'); pinMode = 'check'; rebuildPad(); }
+  else { pinFirst = ''; pinBuf = ''; $('#lock .muted').textContent = 'Не збіглося. Придумайте PIN заново'; setTimeout(drawPins, 150); }
 });
-function rebuildPad() { $('#pad').innerHTML = [1, 2, 3, 4, 5, 6, 7, 8, 9, '', 0, '⌫'].map(k => k === '' ? (pinMode === 'set' ? '<button data-pin="cancel" style="font-size:14px">Отмена</button>' : '<span></span>') : `<button data-pin="${k}">${k}</button>`).join(''); }
+function rebuildPad() { $('#pad').innerHTML = [1, 2, 3, 4, 5, 6, 7, 8, 9, '', 0, '⌫'].map(k => k === '' ? (pinMode === 'set' ? '<button data-pin="cancel" style="font-size:14px">Скасувати</button>' : '<span></span>') : `<button data-pin="${k}">${k}</button>`).join(''); }
 let hiddenAt = 0;
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) { hiddenAt = Date.now(); if (localStorage.getItem(LS.dirty) && SYNC.token) syncNow(); }
@@ -883,33 +883,33 @@ const ACT = {
   mNext: () => { UI.month = addMonth(UI.month, 1); render(); },
   addTx: () => txForm(),
   editTx: id => txForm(id),
-  delTx: id => { if (!confirm('Удалить операцию?')) return; for (const r of list('rec')) for (const [m, tid] of Object.entries(r.paid || {})) if (tid === id) { const p = { ...r.paid }; delete p[m]; put('rec', { ...r, paid: p }); }
-    remove('tx', id); closeSheet(); render(); toast('Удалено'); },
+  delTx: id => { if (!confirm('Видалити операцію?')) return; for (const r of list('rec')) for (const [m, tid] of Object.entries(r.paid || {})) if (tid === id) { const p = { ...r.paid }; delete p[m]; put('rec', { ...r, paid: p }); }
+    remove('tx', id); closeSheet(); render(); toast('Видалено'); },
   closeSheet,
   editLimit: id => limitForm(id),
   copyBudget,
   editGoal: id => goalForm(id), goalAdd: id => goalAdd(id), goalHist: id => goalHist(id),
   goalDelC: (id, el) => { const g = get('goal', id); const c = [...(g.contrib || [])]; c.splice(+el.dataset.i, 1); put('goal', { ...g, contrib: c }); goalHist(id); render(); },
-  delGoal: id => { if (confirm('Удалить цель?')) { remove('goal', id); closeSheet(); render(); } },
+  delGoal: id => { if (confirm('Видалити ціль?')) { remove('goal', id); closeSheet(); render(); } },
   editDebt: id => debtForm(id), debtPay: id => debtPay(id),
-  delDebt: id => { if (confirm('Удалить долг?')) { remove('debt', id); closeSheet(); render(); } },
+  delDebt: id => { if (confirm('Видалити борг?')) { remove('debt', id); closeSheet(); render(); } },
   editRec: id => recForm(id), payRec: id => payRec(id),
-  delRec: id => { if (confirm('Удалить регулярный платёж?')) { remove('rec', id); closeSheet(); render(); } },
+  delRec: id => { if (confirm('Видалити регулярний платіж?')) { remove('rec', id); closeSheet(); render(); } },
   editAcc: id => accForm(id),
-  delAcc: id => { const n = txs().filter(t => t.acc === id || t.acc2 === id).length; if (confirm(n ? `По счёту есть ${n} операций — они останутся, но без счёта. Удалить?` : 'Удалить счёт?')) { remove('acc', id); closeSheet(); render(); } },
+  delAcc: id => { const n = txs().filter(t => t.acc === id || t.acc2 === id).length; if (confirm(n ? `На рахунку є ${n} операцій — вони залишаться, але без рахунку. Видалити?` : 'Видалити рахунок?')) { remove('acc', id); closeSheet(); render(); } },
   editCat: id => catForm(id),
-  delCat: id => { const n = txs().filter(t => t.cat === id).length; if (confirm(n ? `В категории ${n} операций — они станут «Без категории». Удалить?` : 'Удалить категорию?')) { remove('cat', id); closeSheet(); render(); } },
+  delCat: id => { const n = txs().filter(t => t.cat === id).length; if (confirm(n ? `У категорії ${n} операцій — вони стануть «Без категорії». Видалити?` : 'Видалити категорію?')) { remove('cat', id); closeSheet(); render(); } },
   settings: openSettings,
   syncNow: () => syncNow(true),
-  syncOff: () => { if (!confirm('Отключить синхронизацию на этом устройстве? Данные останутся в телефоне и в репозитории.')) return; SYNC = {}; localStorage.removeItem(LS.sync); setSyncUI('off', ''); closeSheet(); render(); },
+  syncOff: () => { if (!confirm('Вимкнути синхронізацію на цьому пристрої? Дані залишаться в телефоні та в репозиторії.')) return; SYNC = {}; localStorage.removeItem(LS.sync); setSyncUI('off', ''); closeSheet(); render(); },
   editMem: id => memForm(id),
-  delMem: id => { if (members().length < 2) return toast('Нужен хотя бы один человек'); if (confirm('Удалить?')) { remove('member', id); openSettings(); } },
+  delMem: id => { if (members().length < 2) return toast('Потрібна хоча б одна людина'); if (confirm('Видалити?')) { remove('member', id); openSettings(); } },
   pinSet: () => { closeSheet(); pinMode = 'set'; rebuildPad(); showLock('set'); },
-  pinOff: () => { localStorage.removeItem(LS.pin); openSettings(); toast('PIN убран'); },
+  pinOff: () => { localStorage.removeItem(LS.pin); openSettings(); toast('PIN прибрано'); },
   exportJson: () => download(`budget-${todayStr()}.json`, canonical(DB), 'application/json'),
   exportCsv,
   importJson: () => $('#impFile').click(),
-  wipe: () => { if (!confirm('Удалить ВСЕ данные с этого устройства? ' + (SYNC.token ? 'Копия в GitHub останется, при следующей синхронизации данные вернутся.' : 'Сначала скачайте резервную копию!'))) return;
+  wipe: () => { if (!confirm('Видалити ВСІ дані з цього пристрою? ' + (SYNC.token ? 'Копія в GitHub залишиться, при наступній синхронізації дані повернуться.' : 'Спочатку завантажте резервну копію!'))) return;
     localStorage.removeItem(LS.data); localStorage.removeItem(LS.dirty); DB = seed(); saveLocal(); closeSheet(); render(); if (SYNC.token) syncNow(); },
 };
 document.addEventListener('click', e => {
