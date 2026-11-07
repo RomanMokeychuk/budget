@@ -157,7 +157,7 @@ svg text{fill:var(--text)}
 <body>
 <div class="app">
   <header class="top">
-    <h1 id="title">Сімейний бюджет</h1>
+    <h1 id="title" data-act="syncNow" style="cursor:pointer">Сімейний бюджет</h1>
     <button class="sync" id="syncBtn" data-act="syncNow"><i class="dot" id="syncDot"></i><span id="syncTxt">локально</span></button>
   </header>
   <main id="main"></main>
@@ -1323,7 +1323,10 @@ function openSettings() {
     <div class="btns" style="flex-wrap:wrap"><button class="btn sec sm" data-act="exportJson">Завантажити JSON</button><button class="btn sec sm" data-act="exportCsv">Завантажити CSV (Excel)</button><button class="btn sec sm" data-act="importJson">Імпортувати JSON</button></div>
     <input type="file" id="impFile" accept=".json,application/json" style="display:none">
     <div class="btns"><button class="btn danger sm" data-act="wipe">Очистити дані на цьому пристрої</button></div></div>
-  <p class="hint" style="text-align:center">Операцій: ${txs().length} · v1.0</p>`, p => {
+  <div class="card"><h3>🔄 Оновлення</h3>
+    <p class="hint" style="margin-top:0">Дані синхронізуються самі: при відкритті, після кожної зміни і кожні 45 секунд, поки застосунок відкритий. Якщо на телефоні показується стара версія застосунку — натисніть кнопку.</p>
+    <div class="btns"><button class="btn sec sm" data-act="syncNow">Синхронізувати зараз</button><button class="btn sec sm" data-act="updateApp">Оновити застосунок</button></div></div>
+  <p class="hint" style="text-align:center">Операцій: ${txs().length} · версія ${APP_VERSION}</p>`, p => {
     const f = p.querySelector('#sf');
     f.onsubmit = async e => {
       e.preventDefault();
@@ -1397,6 +1400,16 @@ document.addEventListener('visibilitychange', () => {
   }
 });
 window.addEventListener('online', () => SYNC.token && syncNow());
+// поки застосунок відкритий — підтягувати зміни з іншого телефона кожні 45 с
+setInterval(() => { if (!document.hidden && SYNC.token && !syncState.busy) syncNow(); }, 45000);
+const APP_VERSION = '2.0';
+async function updateApp() {
+  toast('Оновлюю застосунок…');
+  try { const regs = await navigator.serviceWorker?.getRegistrations?.() || []; for (const r of regs) await r.unregister(); } catch (e) {}
+  try { const keys = await caches.keys(); for (const k of keys) await caches.delete(k); } catch (e) {}
+  if (SYNC.token) { try { await syncNow(); } catch (e) {} }
+  location.reload();
+}
 
 /* ============ actions ============ */
 const ACT = {
@@ -1421,6 +1434,7 @@ const ACT = {
   editAcc: id => accForm(id),
   newAcc: kind => accForm(null, kind),
   homeSettings,
+  updateApp: () => updateApp(),
   planSave: () => { const m = parseAmt($('#plM').value), b = parseAmt($('#plB').value); setSetting('plan', { monthly: m > 0 ? m : 16000, bonusUsd: b >= 0 ? b : 0 }); render(); toast('План оновлено ✓'); },
   bonusForm,
   payCreditAmt: (id, el) => { const a = get('acc', id); const from = (lastTx.acc && lastTx.acc !== id && akind(get('acc', lastTx.acc)) === 'reg') ? lastTx.acc : accs().find(x => akind(x) === 'reg')?.id;
