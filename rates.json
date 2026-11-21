@@ -1,0 +1,20 @@
+{
+ "city": "Одеса",
+ "source": "kurs.com.ua",
+ "updated": "2026-11-21T13:13+02:00",
+ "usd": {
+  "buy": 45.25,
+  "sell": 45.5,
+  "best_buy": 45.5,
+  "best_sell": 45.45,
+  "count": 23,
+  "optimal": {
+   "buy": 45.232,
+   "sell": 45.461
+  }
+ },
+ "banks": {
+  "buy": 44.883,
+  "sell": 45.477
+ }
+}
